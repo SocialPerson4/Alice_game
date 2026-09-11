@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱丽丝漫游仙境：药水与泪池的考验</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 特效相关库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-attractors@0.1.6/build/matter-attractors.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-wrap@1.1.1/build/matter-wrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <!-- 成就系统 -->
+    <script src="../js/achievement-system.js"></script>
+    <!-- 音频系统 -->
+    <audio id="bg-music" loop preload="auto" style="display: none;">
+        <source src="../music/第二幕/1.房间.mp3" type="audio/mpeg">
+    </audio>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 主游戏容器 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* 背景图片 */
+        #background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: all 1.5s ease-in-out;
+            opacity: 0;
+            z-index: 1;
+        }
+
+        /* 角色立绘 */
+        .character {
+            position: absolute;
+            bottom: 0;
+            max-width: 45vw;
+            height: auto;
+            max-height: 85vh;
+            transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            opacity: 0;
+            transform: translateX(-100px);
+            z-index: 10;
+            filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.4));
+        }
+
+        .character.left {
+            left: 5%;
+        }
+
+        .character.center {
+            left: 50%;
+            transform: translateX(-50%) translateX(-100px);
+        }
+
+        .character.right {
+            right: -25%;
+            max-width: 65vw;
+            max-height: 95vh;
+            transform: translateX(100px) scale(1.2);
+        }
+
+        .character.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .character.center.show {
+            transform: translateX(-50%);
+        }
+
+        .character.right.show {
+            opacity: 1;
+            transform: translateX(0) scale(1.2);
+        }
+
+        /* 特殊变化效果 */
+        .character.growing {
+            transform: scale(1.3) translateX(-50%);
+        }
+
+        .character.shrinking {
+            transform: scale(0.7) translateX(-50%);
+        }
+
+        .character.left.growing {
+            transform: scale(1.3);
+        }
+
+        .character.left.shrinking {
+            transform: scale(0.7);
+        }
+
+        .character.right.growing {
+            transform: translateX(0) scale(1.6);
+        }
+
+        .character.right.shrinking {
+            transform: translateX(0) scale(0.9);
+        }
+
+        /* 体型变化过渡效果 */
+        .character.growing,
+        .character.shrinking,
+        .character.left.growing,
+        .character.left.shrinking,
+        .character.right.growing,
+        .character.right.shrinking {
+            transition: transform 0.8s ease-in-out;
+        }
+
+        /* 对话框 */
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 850px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 25px;
+            padding: 25px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(60px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 20;
+            border: 3px solid rgba(138, 43, 226, 0.3);
+        }
+
+        #dialog-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 角色名称 */
+        #character-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #8a2be2;
+            margin-bottom: 12px;
+            text-shadow: 0 0 8px rgba(138, 43, 226, 0.4);
+            transition: all 0.5s ease;
+        }
+
+        /* 对话文本 */
+        #dialog-text {
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #333;
+            min-height: 70px;
+            transition: opacity 0.4s ease;
+        }
+
+        /* 打字机效果 */
+        .typewriter-text {
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .typewriter-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: #8a2be2;
+            margin-left: 2px;
+            animation: blink-cursor 1s infinite;
+        }
+
+        @keyframes blink-cursor {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* 文字逐个显示动画 */
+        .char-appear {
+            opacity: 0;
+            animation: charFadeIn 0.1s ease-in forwards;
+        }
+
+        @keyframes charFadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+
+        /* 选择按钮 */
+        #choices {
+            position: absolute;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 25;
+        }
+
+        .choice-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2, #4c1d95);
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            min-width: 350px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(30px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            filter: brightness(1.15);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .choice-btn:active {
+            transform: translateY(-2px);
+            transition: transform 0.1s ease;
+        }
+
+        /* 选择按钮波纹特效 */
+        .choice-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            animation: choice-ripple-animation 1s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes choice-ripple-animation {
+            from {
+                transform: scale(0);
+                opacity: 1;
+            }
+            to {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        /* 控制按钮 */
+        #controls {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            padding: 12px 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+            font-weight: bold;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: rgba(255, 255, 255, 0.7);
+            transform: translateY(-2px);
+        }
+
+        /* 标题界面 */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('../img/第二章进入背景.jpg') center center/cover no-repeat,
+                        linear-gradient(135deg, rgba(102, 126, 234, 0.6) 0%, rgba(118, 75, 162, 0.6) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+
+        #title-screen h1 {
+            font-size: 4.5rem;
+            color: white;
+            text-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+            margin-bottom: 40px;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+            text-align: center;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 25px rgba(255, 255, 255, 0.6); }
+            to { text-shadow: 0 0 40px rgba(255, 105, 180, 0.9); }
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 25px 50px;
+            border-radius: 40px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        #start-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            #title-screen h1 {
+                font-size: 3rem;
+            }
+            
+            .choice-btn {
+                min-width: 280px;
+                font-size: 1rem;
+                padding: 15px 25px;
+            }
+            
+            #dialog-box {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+
+        /* 粒子特效样式 */
+        #effect-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* 特效相关样式 */
+        #wrapper-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 5;
+            pointer-events: auto;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(85, 85, 85, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(85, 85, 85, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+            animation: pulse 4s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.3; }
+        }
+
+        .dg.ac {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 300px !important;
+            max-width: 300px !important;
+            z-index: 1000;
+            opacity: 0.8;
+        }
+
+        .dg .dg.main {
+            width: 300px !important;
+        }
+
+        .dg .close-button {
+            width: 300px !important;
+        }
+    </style>
+</head>
+<body class="bg-blue-100 flex flex-col items-center justify-center h-screen w-screen">
+    <!-- 网格背景特效 -->
+    <div class="grid-overlay"></div>
+
+    <!-- 特效画布 -->
+    <div id="wrapper-canvas"></div>
+
+    <!-- 标题界面 -->
+    <div id="title-screen">
+        <h1>爱丽丝漫游仙境<br/>药水与泪池的考验</h1>
+        <button id="start-btn">开始奇幻之旅</button>
+    </div>
+
+    <!-- 主游戏容器 -->
+    <div id="game-container">
+        <!-- 背景 -->
+        <div id="background"></div>
+        
+        <!-- 角色立绘 -->
+        <img id="character-left" class="character left" src="" alt="">
+        <img id="character-center" class="character center" src="" alt="">
+        <img id="character-right" class="character right" src="" alt="">
+        
+        <!-- 选择按钮 -->
+        <div id="choices"></div>
+        
+        <!-- 对话框 -->
+        <div id="dialog-box">
+            <div id="character-name"></div>
+            <div id="dialog-text"></div>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div id="controls">
+            <button class="control-btn" id="auto-btn">自动</button>
+            <button class="control-btn" id="skip-btn">快进</button>
+            <button class="control-btn" id="audio-btn" title="音频开关">🔊 音频</button>
+        </div>
+    </div>
+
+
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            currentScene: 0,
+            currentDialog: 0,
+            autoMode: false,
+            skipMode: false,
+            isTransitioning: false,
+            preloadedImages: new Map(),
+            animationFrameId: null,
+            aliceSize: 'normal', // 新增：记录爱丽丝当前体型状态
+            typewriterSpeed: 50, // 打字机速度（毫秒）
+            isTyping: false, // 是否正在打字
+            typewriterTimeout: null // 打字机定时器
+        };
+
+        // 音频管理系统
+        const audioManager = {
+            currentMusic: null,
+            isTransitioning: false,
+            bgMusic: document.getElementById('bg-music'),
+            defaultVolume: 0.6,
+            audioEnabled: true, // 音频开关状态
+            
+            // 场景音频配置
+            sceneMusic: {
+                'opening': '../music/第二幕/1.房间.mp3',
+                'eat_cake': '../music/第二幕/1.房间.mp3',
+                'drink_potion': '../music/第二幕/1.房间.mp3',
+                'try_door_again': '../music/第二幕/1.房间.mp3',
+                'find_way_back': '../music/第二幕/1.房间.mp3',
+                'tears_pool': '../music/第二幕/2.泪水之池哭泣.mp3',
+                'control_tears': '../music/第二幕/3.斗争成功1.mp3',
+                'explore_tears_pool': '../music/第二幕/4.池下探索.mp3',
+                'discover_hidden_space': '../music/第二幕/4.池下探索.mp3',
+                'return_and_continue': '../music/第二幕/5.仙境的过去_拼图游戏.mp3',
+                'continue_adventure': '../music/第二幕/6.门开后.mp3',
+                'credits': '../music/第二幕/6.门开后.mp3'
+            },
+            
+            // 初始化音频
+            init() {
+                this.bgMusic.volume = this.defaultVolume;
+                this.bgMusic.addEventListener('ended', () => {
+                    if (this.currentMusic) {
+                        this.bgMusic.play().catch(e => console.log('音频播放失败:', e));
+                    }
+                });
+                
+                // 处理音频加载错误
+                this.bgMusic.addEventListener('error', (e) => {
+                    console.warn('音频加载错误:', e);
+                });
+                
+                console.log('音频系统初始化完成');
+            },
+            
+            // 播放指定音频
+            async playMusic(musicPath, fadeIn = true) {
+                // 检查音频开关状态
+                if (!this.audioEnabled) {
+                    console.log('音频已关闭，跳过播放');
+                    return;
+                }
+                
+                if (this.isTransitioning || this.currentMusic === musicPath) {
+                    return;
+                }
+                
+                console.log('切换音频到:', musicPath);
+                this.isTransitioning = true;
+                
+                try {
+                    // 如果有当前音乐，先淡出
+                    if (this.currentMusic && !this.bgMusic.paused) {
+                        await this.fadeOut();
+                    }
+                    
+                    // 切换音频源
+                    this.bgMusic.src = musicPath;
+                    this.currentMusic = musicPath;
+                    
+                    // 重置音量并播放
+                    this.bgMusic.volume = fadeIn ? 0 : this.defaultVolume;
+                    
+                    await this.bgMusic.play();
+                    
+                    // 淡入新音乐
+                    if (fadeIn) {
+                        await this.fadeIn();
+                    }
+                    
+                    console.log('音频切换完成:', musicPath);
+                } catch (error) {
+                    console.warn('音频播放失败:', error);
+                } finally {
+                    this.isTransitioning = false;
+                }
+            },
+            
+            // 淡入效果
+            fadeIn(duration = 1500) {
+                return new Promise((resolve) => {
+                    const startVolume = 0;
+                    const endVolume = this.defaultVolume;
+                    const steps = 30;
+                    const stepTime = duration / steps;
+                    const volumeStep = (endVolume - startVolume) / steps;
+                    
+                    let currentStep = 0;
+                    this.bgMusic.volume = startVolume;
+                    
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume + (volumeStep * currentStep);
+                        
+                        if (currentStep >= steps) {
+                            this.bgMusic.volume = endVolume;
+                            clearInterval(fadeInterval);
+                            resolve();
+                        } else {
+                            this.bgMusic.volume = Math.min(newVolume, endVolume);
+                        }
+                    }, stepTime);
+                });
+            },
+            
+            // 淡出效果
+            fadeOut(duration = 1000) {
+                return new Promise((resolve) => {
+                    const startVolume = this.bgMusic.volume;
+                    const endVolume = 0;
+                    const steps = 20;
+                    const stepTime = duration / steps;
+                    const volumeStep = (startVolume - endVolume) / steps;
+                    
+                    let currentStep = 0;
+                    
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume - (volumeStep * currentStep);
+                        
+                        if (currentStep >= steps) {
+                            this.bgMusic.volume = endVolume;
+                            this.bgMusic.pause();
+                            clearInterval(fadeInterval);
+                            resolve();
+                        } else {
+                            this.bgMusic.volume = Math.max(newVolume, endVolume);
+                        }
+                    }, stepTime);
+                });
+            },
+            
+            // 停止音乐
+            async stop(fadeOut = true) {
+                if (fadeOut && !this.bgMusic.paused) {
+                    await this.fadeOut();
+                } else {
+                    this.bgMusic.pause();
+                    this.bgMusic.volume = 0;
+                }
+                this.currentMusic = null;
+            },
+            
+            // 根据场景ID播放音乐
+            playSceneMusic(sceneId) {
+                const musicPath = this.sceneMusic[sceneId];
+                if (musicPath) {
+                    this.playMusic(musicPath);
+                } else {
+                    console.log('场景', sceneId, '没有配置音乐');
+                }
+            },
+            
+            // 切换音频开关状态
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                
+                if (!this.audioEnabled && !this.bgMusic.paused) {
+                    // 关闭音频时停止播放
+                    this.stop(true);
+                } else if (this.audioEnabled && this.currentMusic) {
+                    // 开启音频时恢复播放当前场景音乐
+                    this.playMusic(this.currentMusic);
+                }
+                
+                // 更新按钮显示
+                this.updateAudioButton();
+            },
+            
+            // 更新音频按钮显示
+            updateAudioButton() {
+                if (this.audioEnabled) {
+                    audioBtn.innerHTML = '🔊 音频';
+                    audioBtn.title = '点击关闭音频';
+                } else {
+                    audioBtn.innerHTML = '🔇 静音';
+                    audioBtn.title = '点击开启音频';
+                }
+            }
+        };
+
+        // 游戏数据 - 第二幕：迷失与适应：泪水之池
+        const gameData = {
+            scenes: [
+                {
+                    id: "opening",
+                    background: "./img/房间.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝感到一阵眩晕，当她恢复清醒时，已身处一个陌生而怪诞的空间。她环顾四周，眼中充满了不解。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "这里是……哪里？我怎么会来到这里？",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "房间里的一切都透着古怪，爱丽丝的目光停留在眼前的两个选项上。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "吃掉\"吃我\"蛋糕", nextScene: "eat_cake" },
+                                { text: "喝下\"喝我\"药水", nextScene: "drink_potion" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "eat_cake",
+                    background: "./img/房间.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝犹豫片刻，拿起地上的蛋糕，带着一丝不安将其吃下。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝的身体以惊人的速度膨胀，瞬间变得巨大无比，她的头猛地撞到了天花板，整个身体都被卡住，动弹不得。房间在她面前变得渺小。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/全身.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "啊！这是怎么回事？！我……我变大了！我动不了了！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/大哭.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "巨大的沮丧和无助感瞬间袭来，爱丽丝的眼泪开始不受控制地涌出。",
+                            characters: [],
+                            choices: [
+                                { text: "继续", nextScene: "tears_pool" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "drink_potion",
+                    background: "./img/小门.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝拿起桌上的药水，瓶身上\"喝我\"的字样显得格外诱惑。她带着一丝期待，将药水一饮而尽。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝的身体迅速缩小，变成了一个可以轻易钻进桌子底下的尺寸。房间里的家具在她眼中变得无比巨大。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/半身.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "我变小了！太好了，我可以试试那扇小门！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝迅速跑到小门前，尝试推开它。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝娇小的身躯站在小门前，她伸出小手去推门，却发现门上挂着一把冰冷的锁，没有钥匙。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "门是锁着的……钥匙呢？它不在门上……桌上也够不到……",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/沮丧.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "再次尝试通过小门", nextScene: "try_door_again" },
+                                { text: "回到桌前，想办法吃掉蛋糕", nextScene: "find_way_back" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "try_door_again",
+                    background: "./img/小门.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝不甘心地再次尝试推动小门。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "还是不行……钥匙到底在哪里？",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/沮丧.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "小门紧锁，钥匙不在门上。爱丽丝意识到，她必须先变大才能再次触及蛋糕，或许才能找到新的线索。",
+                            characters: [],
+                            choices: [
+                                { text: "回到桌前，想办法吃掉蛋糕", nextScene: "find_way_back" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "find_way_back",
+                    background: "./img/房间2.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝决定回到桌前，想办法再次变大。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "经过一番努力，爱丽丝终于成功找到了地上的蛋糕，并小心翼翼地将其吃下。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝的身体再次迅速膨胀，直到头顶天花板，被卡在房间里动弹不得。眼泪也随之涌出。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/全身.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "巨大的体型让她再次陷入困境，爱丽丝感到前所未有的沮丧和无助，眼泪如同决堤般涌出。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/大哭.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "继续剧情", nextScene: "tears_pool" }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    id: "tears_pool",
+                    background: "./img/房间2.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "无论爱丽丝如何选择，她最终都会陷入困境，感到沮丧和无助，开始流泪。她的眼泪汇聚成巨大的泪水之池，几乎将房间填满。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "为什么这些东西都不按常理出牌？我到底是谁？我还能控制什么？这种失控感，就像现实生活中那些让我无力改变的烦恼一样……我讨厌这种感觉！我不能就这样被困住！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/大哭.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝的\"常识\"与仙境的\"荒诞\"产生剧烈冲突，她感到被这个世界\"误解\"和排斥，无法用已知逻辑应对。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "在这泪水的困境中，爱丽丝的内心深处涌现出一股不甘。她不能就这样被困住。",
+                            characters: [],
+                            choices: [
+                                { text: "寻求突破，止住眼泪", nextScene: "control_tears" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "control_tears",
+                    background: "./img/房间2.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝深吸一口气，努力适应身体的变化，她集中精神，尝试控制自己的情绪，止住不断涌出的眼泪。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "奇迹般地，泪水停止上涨，房间内的水位也开始缓慢下降。爱丽丝成功地获得了行动的自由。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "【成就获得提示：【心之初醒】】！！！这是爱丽丝第一次主动的自我认知与成长，她尝试打破困境，不再被动接受。",
+                            characters: [],
+                            choices: [],
+                            achievement: "heart_awakening"
+                        },
+                        {
+                            character: "旁白",
+                            text: "【获得道具：【无畏之核】】伴随着心境的变化，一个闪烁着微光的【无畏之核】在她手中凝聚。",
+                            characters: [],
+                            choices: [
+                                { text: "继续探索", nextScene: "explore_tears_pool" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "explore_tears_pool",
+                    background: "./img/泪水池底.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "泪水之池中，此刻的爱丽丝拥有了更强的适应能力。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在泪水池中探索。池中漂浮着一些奇特的物品，看起来像是一把扇子和一个药水。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在水中小心翼翼地游动，很快便找到了那把精致的扇子和一瓶水下呼吸药水。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "当爱丽丝同时拥有扇子和水下呼吸药水后，她感到身体变得轻盈，可以在水下自由探索。她潜到下水道口，将手伸进去，成功拿到了小门的钥匙。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在水下拿到钥匙，钥匙发出微光，照亮周围的池水。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "钥匙！我找到钥匙了！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "探索水下深处，寻找更多线索", nextScene: "discover_hidden_space" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "discover_hidden_space",
+                    background: "./img/泪水池底.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "拿到钥匙后，爱丽丝心中充满了希望，但她的目光却被房间左下角一个异常平静且泛着微光的洞口吸引。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "这里有个奇怪的洞...幸好我现在已经变小了，可以进去。让我试试...",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝好奇地潜入那个泛着微光的洞口。洞口很小，只有变小了的爱丽丝才能进入。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "这里……好美，但又好悲伤……这些碎片是……？",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝将漂浮的记忆碎片一片片重组，仙境过去美好却已逝去的片段在她眼前一一展现，她感受到了仙境表象下的空虚与悲哀。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "记忆碎片重组完成，呈现出仙境过去繁盛却如今残破的景象。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝的心灵被深深触动，她获得了对仙境深层痛苦的理解。【获得道具：【仙境回响】】【成就获得提示：【仙境之悟】】爱丽丝理解到，仙境的困境并非纯粹的荒诞，而是有其悲哀的根源。",
+                            characters: [],
+                            choices: [
+                                { text: "进入隐藏关卡：仙境的悲歌", nextScene: "隐藏关卡.html" }
+                            ],
+                            achievement: "wonderland_understanding"
+                        }
+                    ]
+                },
+                {
+                    id: "return_and_continue",
+                    background: "./img/小门.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "带着对仙境更深层的理解，爱丽丝带着【仙境回响】回到了泪水之池。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝站在小门前，手中握着钥匙，眼神坚定。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "她用在水下获得的钥匙，轻轻插入小门的锁孔。清脆的\"咔哒\"一声，锁应声而开。爱丽丝推开小门，一道耀眼的光芒从门后泻出。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "该是时候了……",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝迈步走入光芒，背影逐渐消失在门后。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝迈步走入光芒，离开了充满困境与泪水的房间。在这一刻，她感到内心有两种不同的想法在交锋。",
+                            characters: [],
+                            choices: [
+                                //{ text: "运用力量，掌控局面", nextScene: "use_power" },
+                                { text: "继续冒险", nextScene: "continue_adventure" }
+                            ]
+                        }
+                    ]
+                },
+                // {
+                //     id: "use_power",
+                //     background: "./img/房间2.png",
+                //     dialogs: [
+                //         {
+                //             character: "爱丽丝",
+                //             text: "我感受到了仙境的力量在召唤我。或许，我需要用一种不同的方式来面对这些挑战。",
+                //             characters: [
+                //                 { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                //             ],
+                //             choices: []
+                //         },
+                //         {
+                //             character: "旁白",
+                //             text: "爱丽丝感到内心深处涌现出一股想要掌控局面的渴望。她知道，要在这个混乱的世界中生存，她需要学会运用力量。",
+                //             characters: [],
+                //             choices: []
+                //         },
+                //         {
+                //             character: "爱丽丝",
+                //             text: "理解太慢了，太痛苦了。我需要力量，来改变这一切，让它回到我记忆中那片纯真美好的样子。",
+                //             characters: [
+                //                 { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                //             ],
+                //             choices: []
+                //         },
+                //         {
+                //             character: "旁白",
+                //             text: "爱丽丝选择运用力量，她将通过一场小游戏来展现她的掌控力。",
+                //             characters: [],
+                //             choices: [
+                //                 { text: "开始掌控卡牌小游戏", nextScene: "小游戏2.html?source=use_power" },
+                //                 { text: "继续冒险", nextScene: "continue_adventure" }
+                //             ]
+                //         }
+                //     ]
+                // },
+                {
+                    id: "continue_adventure",
+                    background: "./img/小门.png",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "我已经通过了药水与泪池的考验，现在我要继续我的仙境冒险！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝带着新的智慧和勇气，准备迎接人生路上的每一个挑战。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "这个故事提醒我们：成长的过程可能充满困惑和挑战，但正是这些经历塑造了我们，让我们变得更加坚强和智慧。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "愿每个人都能在自己的'仙境'中找到勇气面对变化，智慧解决问题，以及最重要的——对自我的深度理解。",
+                            characters: [],
+                            choices: [
+                                { text: "继续前往第三章：荒诞探秩序", nextScene: "第三章节.html" },
+                                { text: "重新开始故事", nextScene: "opening" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "credits",
+                    background: "./img/小门.png",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "感谢您陪伴爱丽丝走过这段奇妙的旅程。",
+                            characters: [],
+                            choices: [
+                                { text: "继续前往第三章：荒诞探秩序", nextScene: "第三章节.html" },
+                                { text: "重新开始", nextScene: "opening" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // DOM 元素
+        const titleScreen = document.getElementById('title-screen');
+        const startBtn = document.getElementById('start-btn');
+        const gameContainer = document.getElementById('game-container');
+        const background = document.getElementById('background');
+        const dialogBox = document.getElementById('dialog-box');
+        const characterName = document.getElementById('character-name');
+        const dialogText = document.getElementById('dialog-text');
+        const choices = document.getElementById('choices');
+        const autoBtn = document.getElementById('auto-btn');
+        const skipBtn = document.getElementById('skip-btn');
+        const audioBtn = document.getElementById('audio-btn');
+
+
+
+        // 角色元素
+        const characterLeft = document.getElementById('character-left');
+        const characterCenter = document.getElementById('character-center');
+        const characterRight = document.getElementById('character-right');
+
+        // 图片预加载管理器
+        class ImagePreloader {
+            constructor() {
+                this.cache = new Map();
+                this.loading = new Set();
+            }
+
+            async preload(src) {
+                if (this.cache.has(src)) {
+                    return this.cache.get(src);
+                }
+
+                if (this.loading.has(src)) {
+                    return new Promise((resolve) => {
+                        const checkLoad = () => {
+                            if (this.cache.has(src)) {
+                                resolve(this.cache.get(src));
+                            } else {
+                                setTimeout(checkLoad, 10);
+                            }
+                        };
+                        checkLoad();
+                    });
+                }
+
+                this.loading.add(src);
+                
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.cache.set(src, img);
+                        this.loading.delete(src);
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        this.loading.delete(src);
+                        console.warn(`Failed to load image: ${src}`);
+                        reject(new Error(`Failed to load image: ${src}`));
+                    };
+                    img.src = src;
+                });
+            }
+
+            preloadBatch(sources) {
+                return Promise.all(sources.map(src => this.preload(src).catch(err => {
+                    console.warn(`Batch preload failed for ${src}:`, err);
+                    return null;
+                })));
+            }
+        }
+
+        const imagePreloader = new ImagePreloader();
+
+        // 完整特效系统 - 来自特效.html
+        var canvas = $("#wrapper-canvas").get(0);
+        var dimensions = {
+            width: $(window).width(),
+            height: $(window).height()
+        };
+
+        Matter.use('matter-attractors');
+        Matter.use('matter-wrap');
+
+        var config = {
+            numShapes: 15,
+            minSize: 3,
+            maxSize: 8,
+            attractionStrength: 2e-6,
+            shapeColor: '#fff',
+            maxSides: 6,
+            minSides: 3,
+            frictionAir: 0.05,
+            reset: function() {
+                resetWorld();
+            }
+        };
+
+        var vibrantColors = [
+            '#ff6b6b',
+            '#4ecdc4',
+            '#45b7d1',
+            '#f7b731',
+            '#ff9ff3',
+            '#54a0ff',
+            '#5f27cd',
+            '#00d2d3',
+            '#ff9f43',
+            '#10ac84'
+        ];
+
+        var engine, runner, render, world, attractiveBody;
+
+        function createWorld() {
+            engine = Matter.Engine.create();
+            engine.world.gravity.scale = 0;
+
+            render = Matter.Render.create({
+                element: canvas,
+                engine: engine,
+                options: {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    wireframes: false,
+                    background: 'transparent'
+                }
+            });
+
+            runner = Matter.Runner.create();
+            world = engine.world;
+
+            attractiveBody = Matter.Bodies.circle(
+                render.options.width / 2,
+                render.options.height / 2,
+                Math.min(dimensions.width, dimensions.height) / 36,
+                {
+                    isStatic: true,
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: 'transparent',
+                        lineWidth: 0
+                    },
+                    plugin: {
+                        attractors: [
+                            function(bodyA, bodyB) {
+                                return {
+                                    x: (bodyA.position.x - bodyB.position.x) * config.attractionStrength,
+                                    y: (bodyA.position.y - bodyB.position.y) * config.attractionStrength,
+                                };
+                            }
+                        ]
+                    }
+                }
+            );
+            Matter.World.add(world, attractiveBody);
+
+            addShapes();
+
+            var mouse = Matter.Mouse.create(render.canvas);
+            Matter.Events.on(engine, 'afterUpdate', function() {
+                if (!mouse.position.x) return;
+                Matter.Body.translate(attractiveBody, {
+                    x: (mouse.position.x - attractiveBody.position.x) * 0.12,
+                    y: (mouse.position.y - attractiveBody.position.y) * 0.12
+                });
+            });
+
+            Matter.Runner.run(runner, engine);
+            Matter.Render.run(render);
+
+            // 👇 Interaction pression / rebond
+            let isPressed = false;
+            let pressStartTime = 0;
+            const originalRadius = attractiveBody.circleRadius;
+
+            render.canvas.addEventListener('mousedown', (event) => {
+                isPressed = true;
+                pressStartTime = Date.now();
+                Matter.Body.scale(attractiveBody, 0.5, 0.5);
+                
+                // 在点击位置添加爆发效果
+                createClickExplosion(event.clientX, event.clientY);
+            });
+
+            render.canvas.addEventListener('mouseup', () => {
+                if (!isPressed) return;
+                isPressed = false;
+
+                const pressDuration = Date.now() - pressStartTime;
+                const speedFactor = Math.min(2, Math.max(0.5, 1000 / pressDuration));
+
+                anime({
+                    targets: { radius: attractiveBody.circleRadius },
+                    radius: originalRadius,
+                    duration: 1000 / speedFactor,
+                    easing: 'easeOutElastic',
+                    update: function(anim) {
+                        const current = attractiveBody.circleRadius;
+                        const target = anim.animations[0].currentValue;
+                        const scale = target / current;
+                        Matter.Body.scale(attractiveBody, scale, scale);
+                    }
+                });
+            });
+
+            return { engine, runner, render };
+        }
+
+        function addShapes() {
+            for (var i = 0; i < config.numShapes; i++) {
+                let x = Matter.Common.random(0, render.options.width);
+                let y = Matter.Common.random(0, render.options.height);
+                let s = Matter.Common.random(config.minSize, config.maxSize);
+                let sides = Math.floor(Matter.Common.random(config.minSides, config.maxSides + 1));
+
+                var shape = Matter.Bodies.polygon(x, y, sides, s, {
+                    mass: s / 20,
+                    friction: 0,
+                    frictionAir: config.frictionAir,
+                    render: {
+                        fillStyle: vibrantColors[Math.floor(Math.random() * vibrantColors.length)],
+                        strokeStyle: '#fff',
+                        lineWidth: 1
+                    },
+                    plugin: {
+                        wrap: {
+                            min: { x: 0, y: 0 },
+                            max: { x: render.options.width, y: render.options.height }
+                        }
+                    }
+                });
+
+                Matter.World.add(world, shape);
+            }
+        }
+
+        function resetWorld() {
+            Matter.World.clear(world, false);
+            Matter.Engine.clear(engine);
+            Matter.World.add(world, attractiveBody);
+            addShapes();
+        }
+
+        function createClickExplosion(x, y) {
+            for (let i = 0; i < 8; i++) {
+                let angle = (Math.PI * 2 * i) / 8;
+                let distance = 20 + Math.random() * 30;
+                let particleX = x + Math.cos(angle) * distance;
+                let particleY = y + Math.sin(angle) * distance;
+                
+                let particle = Matter.Bodies.circle(particleX, particleY, 2 + Math.random() * 3, {
+                    mass: 0.1,
+                    friction: 0,
+                    frictionAir: 0.08,
+                    render: {
+                        fillStyle: vibrantColors[Math.floor(Math.random() * vibrantColors.length)],
+                        strokeStyle: '#fff',
+                        lineWidth: 0.5
+                    },
+                    plugin: {
+                        wrap: {
+                            min: { x: 0, y: 0 },
+                            max: { x: render.options.width, y: render.options.height }
+                        }
+                    }
+                });
+                
+                // 给粒子一个初始速度
+                let force = 0.002 + Math.random() * 0.003;
+                Matter.Body.applyForce(particle, particle.position, {
+                    x: Math.cos(angle) * force,
+                    y: Math.sin(angle) * force
+                });
+                
+                Matter.World.add(world, particle);
+                
+                // 3秒后移除粒子
+                setTimeout(() => {
+                    Matter.World.remove(world, particle);
+                }, 3000);
+            }
+        }
+
+        function setWindowSize() {
+            dimensions.width = $(window).width();
+            dimensions.height = $(window).height();
+            render.canvas.width = dimensions.width;
+            render.canvas.height = dimensions.height;
+            Matter.Body.setPosition(
+                attractiveBody,
+                { x: dimensions.width / 2, y: dimensions.height / 2 }
+            );
+        }
+
+        function debounce(func, wait, immediate) {
+            var timeout;
+            return function() {
+                var context = this, args = arguments;
+                var later = function() {
+                    timeout = null;
+                    if (!immediate) func.apply(context, args);
+                };
+                var callNow = immediate && !timeout;
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+                if (callNow) func.apply(context, args);
+            };
+        }
+
+        // GUI设置（可选，默认关闭）
+        var gui = new dat.GUI();
+        gui.close();
+
+        var shapeFolder = gui.addFolder('Shapes');
+        shapeFolder.add(config, 'numShapes', 5, 50, 1).name('Number of Shapes').onChange(resetWorld);
+        shapeFolder.add(config, 'minSize', 1, 10, 0.5).name('Min Size').onChange(resetWorld);
+        shapeFolder.add(config, 'maxSize', 5, 20, 0.5).name('Max Size').onChange(resetWorld);
+        shapeFolder.add(config, 'minSides', 3, 10, 1).name('Min Sides').onChange(resetWorld);
+        shapeFolder.add(config, 'maxSides', 3, 10, 1).name('Max Sides').onChange(resetWorld);
+
+        var attractorFolder = gui.addFolder('Attractor');
+        attractorFolder.add(config, 'attractionStrength', 1e-7, 5e-6, 1e-7).name('Attraction Strength');
+
+        var physicsFolder = gui.addFolder('Physics');
+        physicsFolder.add(config, 'frictionAir', 0, 1, 0.01).name('Air Friction').onChange(function(value) {
+            Matter.Composite.allBodies(world).forEach(function(body) {
+                if (!body.isStatic) {
+                    body.frictionAir = value;
+                }
+            });
+        });
+
+        var controlFolder = gui.addFolder('Control');
+        controlFolder.add(config, 'reset').name('Reset World');
+
+        function resizeGUI() {
+            const guiContainer = document.querySelector('.dg.ac');
+            if (guiContainer) {
+                guiContainer.style.width = '300px';
+            }
+        }
+
+        window.addEventListener('resize', resizeGUI);
+        resizeGUI();
+
+        // 特效系统清理函数
+        function cleanupEffectSystem() {
+            try {
+                if (render) {
+                    Matter.Render.stop(render);
+                    if (render.canvas) {
+                        render.canvas.remove();
+                    }
+                }
+                if (runner) Matter.Runner.stop(runner);
+                if (engine) Matter.Engine.clear(engine);
+            } catch (error) {
+                console.warn('特效清理失败:', error);
+            }
+        }
+
+        // 初始化特效系统
+        let clickEffectSystem = null;
+
+        // 打字机效果函数
+        function typewriterEffect(element, text, speed = gameState.typewriterSpeed) {
+            return new Promise((resolve) => {
+                // 清除之前的内容和定时器
+                if (gameState.typewriterTimeout) {
+                    clearTimeout(gameState.typewriterTimeout);
+                }
+                
+                element.innerHTML = '';
+                element.classList.add('typewriter-text');
+                gameState.isTyping = true;
+                
+                let charIndex = 0;
+                const chars = text.split('');
+                
+                // 添加光标
+                const cursor = document.createElement('span');
+                cursor.className = 'typewriter-cursor';
+                element.appendChild(cursor);
+                
+                function typeNextChar() {
+                    if (charIndex < chars.length && gameState.isTyping) {
+                        const char = chars[charIndex];
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.className = 'char-appear';
+                        
+                        // 在光标前插入字符
+                        element.insertBefore(span, cursor);
+                        charIndex++;
+                        
+                        gameState.typewriterTimeout = setTimeout(typeNextChar, speed);
+                    } else {
+                        // 打字完成，移除光标
+                        if (cursor.parentNode) {
+                            cursor.remove();
+                        }
+                        gameState.isTyping = false;
+                        element.classList.remove('typewriter-text');
+                        resolve();
+                    }
+                }
+                
+                // 开始打字
+                gameState.typewriterTimeout = setTimeout(typeNextChar, speed);
+            });
+        }
+
+        // 跳过打字机效果
+        function skipTypewriter() {
+            if (gameState.isTyping && gameState.typewriterTimeout) {
+                clearTimeout(gameState.typewriterTimeout);
+                gameState.isTyping = false;
+                
+                // 立即显示完整文本
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                if (dialog) {
+                    dialogText.innerHTML = dialog.text || '';
+                    dialogText.classList.remove('typewriter-text');
+                    // 移除可能存在的光标
+                    const cursor = dialogText.querySelector('.typewriter-cursor');
+                    if (cursor) cursor.remove();
+                }
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 节流函数
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        }
+
+        // 初始化游戏
+        async function initGame() {
+            try {
+                // 初始化音频系统
+                audioManager.init();
+                
+                // 初始化音频按钮显示
+                audioManager.updateAudioButton();
+                
+                // 预加载关键资源
+                const criticalImages = [
+                    './img/房间.png',
+                    './img/背景2.0.png',
+                    './img/人物素材/1111人物/困惑.png',
+                    './img/人物素材/1111人物/坚定.png',
+                    './img/人物素材/1111人物/开心.png',
+                    './img/人物素材/1111人物/沮丧.png',
+                    './img/人物素材/1111人物/全身.png',
+                    './img/人物素材/1111人物/半身.png'
+                ];
+                
+                await imagePreloader.preloadBatch(criticalImages);
+                
+                titleScreen.style.display = 'none';
+                gameContainer.style.display = 'block';
+                
+                // 检查是否从隐藏关卡返回
+                const returnFromHidden = localStorage.getItem('alice_return_from_hidden') === 'true' || 
+                                       new URLSearchParams(window.location.search).get('return_from_hidden') === 'true';
+                
+                if (returnFromHidden) {
+                    // 清除标记
+                    localStorage.removeItem('alice_return_from_hidden');
+                    
+                    // 清除URL参数
+                    if (window.location.search.includes('return_from_hidden')) {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                    
+                    // 直接跳转到return_and_continue场景
+                    const returnSceneIndex = gameData.scenes.findIndex(scene => scene.id === 'return_and_continue');
+                    
+                    if (returnSceneIndex !== -1) {
+                        await loadScene(returnSceneIndex);
+                        return;
+                    } else {
+                        console.error('未找到return_and_continue场景');
+                    }
+                }
+                
+                await loadScene(0);
+            } catch (error) {
+                console.error('Game initialization failed:', error);
+                alert('游戏初始化失败，请刷新页面重试');
+            }
+        }
+
+        // 加载场景
+        async function loadScene(sceneIndex) {
+            if (gameState.isTransitioning) return;
+            gameState.isTransitioning = true;
+
+            try {
+                gameState.currentScene = sceneIndex;
+                gameState.currentDialog = 0;
+                
+                const scene = gameData.scenes[sceneIndex];
+                if (!scene) {
+                    throw new Error(`Scene ${sceneIndex} not found`);
+                }
+                
+                // 播放场景音乐
+                audioManager.playSceneMusic(scene.id);
+                
+                // 预加载背景图片
+                await imagePreloader.preload(scene.background);
+                
+                // 设置背景
+                background.style.backgroundImage = `url(${scene.background})`;
+                background.style.opacity = '1';
+                
+                // 显示对话框
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        dialogBox.classList.add('show');
+                        showDialog();
+                        resolve();
+                    }, 300);
+                });
+            } catch (error) {
+                console.error('Failed to load scene:', error);
+                alert('场景加载失败，请重试');
+            } finally {
+                gameState.isTransitioning = false;
+            }
+        }
+
+        // 显示对话（带打字机效果）
+        function showDialog() {
+            try {
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                
+                if (!dialog) {
+                    console.log('对话结束');
+                    return;
+                }
+
+                // 取消之前的动画帧和打字机效果
+                if (gameState.animationFrameId) {
+                    cancelAnimationFrame(gameState.animationFrameId);
+                }
+                if (gameState.typewriterTimeout) {
+                    clearTimeout(gameState.typewriterTimeout);
+                }
+
+                // 使用requestAnimationFrame优化动画
+                gameState.animationFrameId = requestAnimationFrame(() => {
+                    // 淡出当前内容
+                    dialogText.style.opacity = '0';
+                    characterName.style.opacity = '0';
+                    
+                    setTimeout(async () => {
+                        // 设置角色名称
+                        characterName.textContent = dialog.character || '';
+                        
+                        // 淡入角色名称
+                        requestAnimationFrame(() => {
+                            characterName.style.opacity = '1';
+                        });
+                        
+                        // 显示角色立绘
+                        showCharacters(dialog.characters || []);
+                        
+                        // 等待一下再开始打字效果
+                        setTimeout(async () => {
+                            dialogText.style.opacity = '1';
+                            
+                            // 使用打字机效果显示对话文本
+                            if (dialog.text) {
+                                await typewriterEffect(dialogText, dialog.text);
+                            }
+                            
+                            // 处理成就解锁
+                            if (dialog.achievement) {
+                                setTimeout(() => {
+                                    if (window.achievementSystem) {
+                                        window.achievementSystem.unlockAchievement(dialog.achievement);
+                                    }
+                                }, 1000);
+                            }
+
+                            // 处理选择按钮（修复版） - 确保在打字完成后执行
+                            if (dialog.choices && dialog.choices.length > 0) {
+                                console.log('对话有选择项，准备显示:', dialog.choices);
+                                setTimeout(() => showChoices(dialog.choices), 500);
+                            } else {
+                                console.log('对话无选择项，隐藏选择按钮');
+                                hideChoices();
+                            }
+                        }, 300);
+                    }, 200);
+                });
+            } catch (error) {
+                console.error('Failed to show dialog:', error);
+                setTimeout(() => showDialog(), 1000);
+            }
+        }
+
+
+
+        // 显示角色立绘
+        async function showCharacters(characters) {
+            try {
+                // 清除所有角色的特效类
+                [characterLeft, characterCenter, characterRight].forEach(char => {
+                    char.classList.remove('show', 'growing', 'shrinking');
+                    char.style.opacity = '0';
+                });
+                
+                if (!characters || characters.length === 0) return;
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const showPromises = characters.map(async (char, index) => {
+                    const element = getCharacterElement(char.position);
+                    if (!element || !char.image) return;
+                    
+                    try {
+                        await imagePreloader.preload(char.image);
+                        
+                        element.src = char.image;
+                        element.alt = char.name || '';
+                        
+                        // 根据爱丽丝当前体型状态应用特效
+                        if (char.name === '爱丽丝') {
+                            if (gameState.aliceSize === 'large') {
+                                // 延迟应用变大特效，让过渡效果更明显
+                                setTimeout(() => {
+                                    element.classList.add('growing');
+                                    console.log('应用变大特效');
+                                }, 100);
+                            } else if (gameState.aliceSize === 'small') {
+                                // 延迟应用变小特效，让过渡效果更明显
+                                setTimeout(() => {
+                                    element.classList.add('shrinking');
+                                    console.log('应用变小特效');
+                                }, 100);
+                            } else {
+                                console.log('爱丽丝正常体型');
+                            }
+                        } else if (char.effect) {
+                            // 非爱丽丝角色保持原有特效
+                            element.classList.add(char.effect);
+                        }
+                        
+                        setTimeout(() => {
+                            requestAnimationFrame(() => {
+                                element.classList.add('show');
+                                element.style.opacity = '1';
+                            });
+                        }, index * 200);
+                    } catch (error) {
+                        console.warn(`Failed to load character image: ${char.image}`, error);
+                    }
+                });
+                
+                await Promise.all(showPromises);
+            } catch (error) {
+                console.error('Failed to show characters:', error);
+            }
+        }
+
+        // 获取角色元素
+        function getCharacterElement(position) {
+            switch(position) {
+                case 'left': return characterLeft;
+                case 'center': return characterCenter;
+                case 'right': return characterRight;
+                default: return null;
+            }
+        }
+
+        // 显示选择按钮（修复版）
+        function showChoices(choiceList) {
+            if (!choiceList || choiceList.length === 0) {
+                console.log('没有选择项可显示');
+                return;
+            }
+            
+            console.log('正在显示选择项:', choiceList.length, '个选择');
+            
+            // 强制确保容器状态正确
+            choices.style.display = 'flex';
+            choices.style.opacity = '0';
+            choices.innerHTML = '';
+            choices.style.visibility = 'visible';
+            
+            // 先创建所有按钮
+            const buttons = [];
+            choiceList.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text || '';
+                btn.style.transform = 'translateY(50px)';
+                btn.style.opacity = '0';
+                
+                const debouncedClick = debounce(async (e) => {
+                    if (gameState.isTransitioning) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    choices.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+                    
+                    // 创建波纹效果
+                    const ripple = document.createElement('div');
+                    ripple.className = 'choice-ripple';
+                    
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = `${size}px`;
+                    ripple.style.height = `${size}px`;
+                    ripple.style.left = `${x - size / 2}px`;
+                    ripple.style.top = `${y - size / 2}px`;
+                    
+                    btn.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        makeChoice(choice);
+                        if (ripple.parentNode) {
+                            ripple.remove();
+                        }
+                    }, 300);
+                }, 300);
+                
+                btn.addEventListener('click', debouncedClick);
+                buttons.push(btn);
+                choices.appendChild(btn);
+            });
+            
+            console.log('已创建按钮数量:', buttons.length);
+            console.log('容器内按钮数量:', choices.querySelectorAll('.choice-btn').length);
+            
+            // 强制重排，确保DOM更新
+            choices.offsetHeight;
+            
+            // 立即显示容器，然后动画显示按钮
+            requestAnimationFrame(() => {
+                choices.style.opacity = '1';
+                console.log('容器已设置为可见');
+                
+                // 延迟显示按钮动画
+                setTimeout(() => {
+                    buttons.forEach((btn, index) => {
+                        setTimeout(() => {
+                            requestAnimationFrame(() => {
+                                btn.style.transform = 'translateY(0)';
+                                btn.style.opacity = '1';
+                                console.log(`按钮 ${index + 1} 已显示`);
+                            });
+                        }, index * 150);
+                    });
+                }, 50);
+            });
+        }
+
+        // 隐藏选择按钮（修复版）
+        function hideChoices() {
+            console.log('隐藏选择项');
+            
+            const buttons = choices.querySelectorAll('.choice-btn');
+            if (buttons.length === 0) {
+                // 如果没有按钮，直接隐藏容器
+                choices.style.opacity = '0';
+                return;
+            }
+            
+            buttons.forEach((btn, index) => {
+                setTimeout(() => {
+                    btn.style.transform = 'translateY(20px)';
+                    btn.style.opacity = '0';
+                }, index * 50);
+            });
+            
+            setTimeout(() => {
+                choices.style.opacity = '0';
+                // 完全隐藏后清空内容，确保下次显示时状态正确
+                setTimeout(() => {
+                    choices.innerHTML = '';
+                    choices.style.display = 'flex'; // 确保display属性正确
+                }, 200);
+            }, buttons.length * 50 + 200);
+        }
+
+        // 更新爱丽丝体型状态
+        function updateAliceSize(size) {
+            const oldSize = gameState.aliceSize;
+            gameState.aliceSize = size;
+            console.log(`爱丽丝体型状态从 ${oldSize} 更新为: ${size}`);
+            
+            // 如果体型发生变化，提供视觉反馈
+            if (oldSize !== size) {
+                // 可以在这里添加体型变化的视觉提示
+                console.log(`爱丽丝体型发生变化: ${oldSize} -> ${size}`);
+            }
+        }
+
+        // 做出选择
+        function makeChoice(choice) {
+            if (gameState.isTransitioning || !choice) return;
+            
+            try {
+                // 根据选择更新爱丽丝体型状态
+                if (choice.text && choice.text.includes('吃掉')) {
+                    updateAliceSize('large');
+                } else if (choice.text && choice.text.includes('喝下')) {
+                    updateAliceSize('small');
+                }
+                
+                hideChoices();
+                
+                if (choice.nextScene) {
+                    // 检查是否是外部HTML文件（支持带参数的URL）
+                    if (choice.nextScene.includes('.html')) {
+                        // 跳转到外部HTML文件
+                        setTimeout(() => {
+                            window.location.href = choice.nextScene;
+                        }, 500);
+                    } else {
+                        // 内部场景跳转
+                        const nextSceneIndex = gameData.scenes.findIndex(scene => scene.id === choice.nextScene);
+                        if (nextSceneIndex !== -1) {
+                            setTimeout(() => loadScene(nextSceneIndex), 500);
+                        } else {
+                            console.error(`Scene not found: ${choice.nextScene}`);
+                        }
+                    }
+                } else {
+                    setTimeout(() => nextDialog(), 300);
+                }
+            } catch (error) {
+                console.error('Failed to make choice:', error);
+                gameState.isTransitioning = false;
+            }
+        }
+
+
+
+        // 下一段对话（优化版）
+        function nextDialog() {
+            if (gameState.isTransitioning) return;
+            
+            try {
+                gameState.currentDialog++;
+                const scene = gameData.scenes[gameState.currentScene];
+
+                if (gameState.currentDialog >= scene.dialogs.length) {
+                    console.log('场景结束');
+                    return;
+                }
+
+                console.log(`显示对话 ${gameState.currentDialog + 1}/${scene.dialogs.length}`);
+                showDialog();
+            } catch (error) {
+                console.error('Failed to show next dialog:', error);
+            }
+        }
+
+        // 调试函数：检查选择按钮状态
+        function debugChoicesState() {
+            console.log('=== 第二章选择按钮状态调试 ===');
+            console.log('容器透明度:', choices.style.opacity);
+            console.log('容器显示状态:', choices.style.display);
+            console.log('容器可见性:', choices.style.visibility);
+            console.log('按钮数量:', choices.querySelectorAll('.choice-btn').length);
+            console.log('当前对话索引:', gameState.currentDialog);
+            console.log('当前场景:', gameState.currentScene);
+            console.log('爱丽丝体型状态:', gameState.aliceSize);
+            
+            const scene = gameData.scenes[gameState.currentScene];
+            const dialog = scene?.dialogs[gameState.currentDialog];
+            if (dialog) {
+                console.log('当前对话有选择:', dialog.choices?.length || 0);
+                console.log('选择内容:', dialog.choices);
+            }
+            console.log('=============================');
+        }
+
+        // 在控制台暴露调试函数
+        window.debugChoices = debugChoicesState;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // 初始化选择按钮容器（增强版）
+        function initChoicesContainer() {
+            choices.style.opacity = '0';
+            choices.style.display = 'flex';
+            choices.style.visibility = 'visible';
+            choices.style.pointerEvents = 'auto';
+            choices.innerHTML = '';
+            
+            // 强制重排，确保样式应用
+            choices.offsetHeight;
+            
+            console.log('选择按钮容器已初始化');
+            console.log('容器状态 - opacity:', choices.style.opacity, 'display:', choices.style.display);
+        }
+
+        // 事件监听
+        startBtn.addEventListener('click', () => {
+            // 重置游戏状态
+            gameState = {
+                currentScene: 0,
+                currentDialog: 0,
+                autoMode: false,
+                skipMode: false,
+                isTransitioning: false,
+                preloadedImages: new Map(),
+                animationFrameId: null,
+                aliceSize: 'normal', // 重置爱丽丝体型状态
+                typewriterSpeed: 50, // 打字机速度（毫秒）
+                isTyping: false, // 是否正在打字
+                typewriterTimeout: null // 打字机定时器
+            };
+            
+            // 尝试播放音频（需要用户交互后才能播放）
+            audioManager.bgMusic.play().catch(e => {
+                console.log('音频播放需要用户交互，将在场景加载时重试');
+            });
+            
+            // 重新初始化音频按钮显示
+            audioManager.updateAudioButton();
+            
+            // 重新初始化选择按钮容器
+            initChoicesContainer();
+            
+            initGame();
+        });
+        
+
+
+        // 页面加载时检查是否从隐藏关卡返回
+        window.addEventListener('load', () => {
+            // 初始化选择按钮容器
+            initChoicesContainer();
+            
+            // 初始化音频按钮显示
+            if (audioManager && audioManager.updateAudioButton) {
+                audioManager.updateAudioButton();
+            }
+            
+            // 初始化点击特效系统
+            try {
+                let m = createWorld();
+                setWindowSize();
+                $(window).resize(debounce(setWindowSize, 250));
+                clickEffectSystem = m; // 保存引用以便后续清理
+            } catch (error) {
+                console.warn('点击特效系统初始化失败:', error);
+            }
+            
+            const hasLocalStorageFlag = localStorage.getItem('alice_return_from_hidden') === 'true';
+            const hasUrlParam = new URLSearchParams(window.location.search).get('return_from_hidden') === 'true';
+            
+            if (hasLocalStorageFlag || hasUrlParam) {
+                // 如果是从隐藏关卡返回，直接初始化游戏
+                initGame();
+            }
+        });
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            if (clickEffectSystem) {
+                cleanupEffectSystem();
+            }
+        });
+        
+        // 点击页面任意位置继续对话（优化版 + 打字机支持）
+        document.addEventListener('click', debounce((e) => {
+            // 检查点击的元素是否应该被忽略
+            const clickedElement = e.target;
+            const excludeSelectors = [
+                '.choice-btn',           // 选择按钮
+                '.control-btn',          // 控制按钮
+                '#start-btn',            // 开始按钮
+                '.dg',                   // GUI控制面板
+                '.dg *'                  // GUI控制面板内的所有元素
+            ];
+            
+            // 检查是否点击了需要排除的元素
+            const shouldExclude = excludeSelectors.some(selector => {
+                if (selector.includes('*')) {
+                    // 处理通配符选择器
+                    const baseSelector = selector.replace(' *', '');
+                    return clickedElement.closest(baseSelector);
+                }
+                return clickedElement.matches(selector) || clickedElement.closest(selector);
+            });
+            
+            // 检查是否在标题界面
+            const titleScreen = document.getElementById('title-screen');
+            const isOnTitleScreen = titleScreen && titleScreen.style.display !== 'none';
+            
+            // 如果在标题界面或点击了排除的元素，则不执行对话继续逻辑
+            if (isOnTitleScreen || shouldExclude) {
+                return;
+            }
+            
+            // 执行对话继续逻辑
+            if (!gameState.autoMode && !gameState.skipMode && !gameState.isTransitioning) {
+                // 如果正在打字，点击跳过打字机效果
+                if (gameState.isTyping) {
+                    skipTypewriter();
+                } else {
+                    // 否则继续下一段对话
+                    nextDialog();
+                }
+            }
+        }, 100));
+
+        autoBtn.addEventListener('click', debounce(() => {
+            gameState.autoMode = !gameState.autoMode;
+            autoBtn.textContent = gameState.autoMode ? '手动' : '自动';
+        }, 300));
+
+        skipBtn.addEventListener('click', debounce(() => {
+            gameState.skipMode = !gameState.skipMode;
+            skipBtn.textContent = gameState.skipMode ? '正常' : '快进';
+        }, 300));
+
+        audioBtn.addEventListener('click', debounce(() => {
+            audioManager.toggleAudio();
+        }, 300));
+
+
+
+
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ': // 空格键继续
+                    e.preventDefault();
+                    nextDialog();
+                    break;
+                case 'Enter': // 回车键继续
+                    e.preventDefault();
+                    nextDialog();
+                    break;
+                case 'c': // C键强制显示选择（调试用）
+                case 'C':
+                    e.preventDefault();
+                    const scene = gameData.scenes[gameState.currentScene];
+                    const dialog = scene?.dialogs[gameState.currentDialog];
+                    if (dialog?.choices && dialog.choices.length > 0) {
+                        console.log('手动触发选择显示');
+                        // 强制重新初始化容器
+                        initChoicesContainer();
+                        setTimeout(() => showChoices(dialog.choices), 100);
+                    } else {
+                        console.log('当前对话没有选择项');
+                    }
+                    break;
+                case 'd': // D键调试信息
+                case 'D':
+                    e.preventDefault();
+                    debugChoicesState();
+                    break;
+            }
+        });
+
+
+
+        // 自动模式
+        setInterval(() => {
+            if (gameState.autoMode) {
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                
+                if (dialog && (!dialog.choices || dialog.choices.length === 0)) {
+                    setTimeout(nextDialog, 3000);
+                }
+            }
+        }, 1000);
+
+
+    </script>
+</body>
+</html>

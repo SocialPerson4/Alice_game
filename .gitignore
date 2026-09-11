@@ -1,0 +1,20 @@
+node_modules/
+.env
+.DS_Store
+.idea/
+*.iml
+*.log
+coverage/
+dist/
+*-dump*.sql
+
+# 公开仓库暂不分发音频和视频素材
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.mp3
+*.m4a
+*.mp4
+*.avi

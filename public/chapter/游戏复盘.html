@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱丽丝漫游仙境 - 游戏复盘</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 特效相关库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-attractors@0.1.6/build/matter-attractors.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-wrap@1.1.1/build/matter-wrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景粒子容器 */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            animation: particleFloat 8s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100vh) translateX(0) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* 主容器 */
+        .main-container {
+            position: relative;
+            min-height: 100vh;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            position: relative;
+        }
+
+        .main-title {
+            font-size: 3.5rem;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: scale(0.3) translateY(-50px);
+            animation: titleEntrance 2s ease-out forwards, titleGlow 2s ease-in-out infinite alternate 2s;
+        }
+
+        @keyframes titleEntrance {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(-50px) rotateX(45deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.05) translateY(10px) rotateX(0deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0) rotateX(0deg);
+            }
+        }
+
+        @keyframes titleGlow {
+            from { 
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 105, 180, 0.3); 
+            }
+            to { 
+                text-shadow: 0 0 30px rgba(255, 105, 180, 0.8), 0 0 60px rgba(255, 69, 185, 0.6); 
+            }
+        }
+
+        .subtitle {
+            font-size: 1.5rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: subtitleSlideIn 1.5s ease-out 1s forwards;
+        }
+
+        @keyframes subtitleSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 内容区域 */
+        .content-area {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(138, 43, 226, 0.2);
+            opacity: 0;
+            transform: translateY(50px);
+            animation: contentSlideIn 1.5s ease-out 1.5s forwards;
+        }
+
+        @keyframes contentSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section {
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateX(-30px);
+            animation: sectionSlideIn 1s ease-out forwards;
+        }
+
+        .section:nth-child(1) { animation-delay: 2s; }
+        .section:nth-child(2) { animation-delay: 2.2s; }
+        .section:nth-child(3) { animation-delay: 2.4s; }
+        .section:nth-child(4) { animation-delay: 2.6s; }
+        .section:nth-child(5) { animation-delay: 2.8s; }
+        .section:nth-child(6) { animation-delay: 3s; }
+
+        @keyframes sectionSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: #8a2be2;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.3);
+            border-bottom: 3px solid #ff69b4;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        .section-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #333;
+            text-align: justify;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.1), rgba(138, 43, 226, 0.1));
+            border-left: 5px solid #ff69b4;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(138, 43, 226, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #8a2be2;
+            transition: all 0.3s ease;
+        }
+
+        .feature-list li:hover {
+            background: rgba(138, 43, 226, 0.1);
+            transform: translateX(10px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-list li::before {
+            content: "✨";
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        /* 导航按钮 */
+        .navigation {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.1);
+        }
+
+        /* 音频控制 */
+        .audio-control {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .audio-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            font-size: 1.2rem;
+        }
+
+        .audio-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .audio-btn.muted {
+            background: rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.5);
+        }
+
+        /* 特效画布 */
+        #effect-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 2.5rem;
+            }
+            .content-area {
+                padding: 20px;
+                margin: 10px;
+            }
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景粒子 -->
+    <div class="particles-container"></div>
+
+    <!-- 特效画布 -->
+    <canvas id="effect-canvas"></canvas>
+
+    <!-- 背景音乐 -->
+    <audio id="backgroundMusic" loop>
+        <source src="../music/爱丽丝的梦境.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 导航按钮 -->
+    <div class="navigation">
+        <a href="../index.html" class="nav-btn">返回主页</a>
+    </div>
+
+    <!-- 音频控制 -->
+    <div class="audio-control">
+        <button class="audio-btn" id="audioToggle">🔊</button>
+    </div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h1 class="main-title">爱丽丝漫游仙境</h1>
+            <p class="subtitle">游戏开发复盘与总结</p>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content-area">
+            <div class="section">
+                <h2 class="section-title">复盘概述</h2>
+                <div class="section-content">
+                    <p>本次复盘旨在对《爱丽丝》游戏全五幕进行叙事解析。我们将不仅梳理剧情脉络与伏笔，更将深入探讨每一段对话、每一个角色、每一种结局背后深刻的现实隐喻与心理学投射。</p>
+                    <div class="highlight-box">
+                        <strong>核心理念：</strong>这不仅是一场游戏冒险，更是一次关于成长、创伤、反抗与和解的内心预演。
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第一部分：仙境的创生与悲剧根源</h2>
+                <div class="section-content">
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">🌟 仙境的本质</h3>
+                    <p>仙境是所有被现实压抑的灵魂共通的"想象力"与"情感"汇聚成的<strong>"心之原力"</strong>所构筑的精神空间。</p>
+                    <div class="highlight-box">
+                        <strong>现实隐喻：</strong>仙境代表了我们每个人内心深处的"理想国"，是青春期对成人世界"不合理"规则的逃避，也是我们对纯粹、自由、富有创造力自我的向往。
+                    </div>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">💔 悲剧的降临</h3>
+                    <p>仙境的灾难源于现实世界中蔓延的<strong>"空虚与冷漠"</strong>，这种负面情绪在"心之原力庆典"的顶点爆发，导致象征纯粹想象力的<strong>"心之幼芽"</strong>大量枯萎消散。</p>
+                    <div class="highlight-box">
+                        <strong>现实隐喻：</strong>"空虚与冷漠"象征着现实社会中的功利主义、精神内耗、人际关系的疏离以及梦想被磨灭的挫败感。它代表了成年世界的"重力"，不断拉扯着内心的"理想国"。
+                    </div>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">⛓️ 扭曲的守护</h3>
+                    <p>目睹珍宝被毁，红心皇后被巨大的悲伤与恐惧击垮。为了阻止悲剧重演，她动用强大的<strong>"规则塑形能力"</strong>，将仙境禁锢起来：</p>
+                    <ul class="feature-list">
+                        <li><strong>时间凝固：</strong>她将时间永远固定在悲剧发生的下午六点</li>
+                        <li><strong>王权的锁链：</strong>她将守护规则异化为僵化、冷酷的"王权的锁链"，囚禁了所有人，也包括她自己</li>
+                        <li><strong>"砍掉他们的头！"</strong>并非单纯的暴虐，而是对任何可能带来"改变"和"失去"的存在的过度防御</li>
+                    </ul>
+                    <div class="highlight-box">
+                        <strong>现实隐喻：</strong>皇后象征着一个因遭受巨大创伤（如失业、失恋、理想破灭）而变得偏执、控制欲极强的成年人、家长或权威。她将自己的痛苦经验转化为僵化的"人生道理"（规则），并强加于人，试图通过绝对控制来避免自己或他人重蹈覆辙。她的暴政，源于她深深的恐惧和未被治愈的悲伤。
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第二幕：迷失与适应 —— 泪水之池</h2>
+                <div class="section-content">
+                    <p>爱丽丝的旅程始于一个封闭的房间，这既是她物理上的困境，也是她内心困惑的象征。</p>
+                    
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">📖 剧情回顾</h3>
+                    <p>爱丽丝通过"吃我"蛋糕和"喝我"药水反复陷入困境，最终因无助感而落泪，汇成<strong>"泪水之池"</strong>。关键转折点在于，她选择主动"寻求突破，止住眼泪"，从而获得了<strong>【无畏之核】</strong>，这是她自我成长的第一个标志。</p>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">🔍 伏笔与解答</h3>
+                    <div class="highlight-box">
+                        <strong>伏笔1：</strong>房间内的神秘物品（药水/蛋糕）从何而来？<br>
+                        <strong>解答：</strong>这些物品是仙境本身规则的具象化，其目的就是为了挑战和颠覆爱丽丝从现实世界带来的"常识"。这是仙境对闯入者的第一次"提问"。
+                    </div>
+                    <div class="highlight-box">
+                        <strong>伏笔2：</strong>那把被遗忘在下水道的【小门钥匙】象征着什么？<br>
+                        <strong>解答：</strong>钥匙象征着被皇后僵化规则所压抑的"旧仙境"的自由与可能性。爱丽丝的眼泪（失控的情感）汇聚成池，反而将这个被"压抑"的希望"冲刷"到了表面，寓意着在僵化的秩序中，情感的释放带来了突破的契机。
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第三幕：荒诞的迷宫 —— 理解与抉择</h2>
+                <div class="section-content">
+                    <p>穿过小门，爱丽丝的目标从单纯的"回家"转变为更深层次的"理解"。</p>
+                    
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">📖 剧情回顾</h3>
+                    <p>柴郡猫引导爱丽丝直面内心的"迷失"，并给出了影响深远的选择：是<strong>"拥抱混乱，寻找新的秩序"</strong>，还是<strong>"运用力量，强行重建秩序"</strong>。</p>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">🔍 伏笔与解答</h3>
+                    <div class="highlight-box">
+                        <strong>伏笔1：</strong>柴郡猫的本质是什么？为何他能超脱于皇后的规则之外？<br>
+                        <strong>解答：</strong>柴郡猫是<strong>"仙境的自我意识"</strong>或"镜像"。他不受皇后基于"情感创伤"建立的规则束缚，能够洞悉一切真相，并以谜语的形式引导爱丽丝。
+                    </div>
+                    <div class="highlight-box">
+                        <strong>伏笔2：</strong>【心之映射】与【扭曲之力】这两种力量有何具体作用？<br>
+                        <strong>解答：</strong>这两个道具是爱丽丝选择不同路径后获得的关键能力，并直接决定了最终结局的走向。<br>
+                        • <strong>【心之映射】</strong>（拥抱混乱路线）：赋予爱丽丝共情与洞察的能力，是达成"和解"结局的基础。<br>
+                        • <strong>【扭曲之力】</strong>（强行改变路线）：赋予爱丽丝以意志改变仙境物理规则的能力，是达成"力量"结局的基础。
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第四幕：疯狂茶话会 —— 悲剧的重演</h2>
+                <div class="section-content">
+                    <p>茶话会是仙境悲剧最集中的缩影，一个被时间凝固的永恒刑场。</p>
+                    
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">📖 剧情回顾</h3>
+                    <p>爱丽丝被卷入永无止境的茶会。在解开时钟谜题并获得<strong>【时间凝固的真相】</strong>后，她通过与恢复片刻清醒的疯帽子们对话，集齐了三大核心线索：<strong>【破碎的庆典记忆】</strong>、<strong>【王权的锁链】</strong>、和<strong>【皇后的隐秘悲哀】</strong>。</p>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">🔍 伏笔与解答</h3>
+                    <div class="highlight-box">
+                        <strong>伏笔1：</strong>茶会为何"永无止境"？疯帽子和三月兔不断重演的"罪行"和"判决"究竟指什么？<br>
+                        <strong>解答：</strong>茶会的"永无止境"是因为时间被皇后的能力固定在了下午六点。他们重演的"罪行"，正是那场"心之原力庆典"的悲剧。疯帽子作为"时间编织者"未能留住时间，三月兔作为"规则守护者"未能守护法则。他们的"判决"就是永恒地重演自己的失败，这是皇后内心创伤的外在投射。
+                    </div>
+                    <div class="highlight-box">
+                        <strong>伏笔2：</strong>本幕收集的三个核心线索最终将起到什么作用？<br>
+                        <strong>解答：</strong>这三个线索是爱丽丝理解与共情的证明，它们共同构成了进入"和解"结局所必需的<strong>【共鸣之石】</strong>。在第五幕中，它们将作为"言语的武器"，逐一瓦解皇后的心理防线。
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第二至四幕：线索的铺垫与力量的抉择</h2>
+                <div class="section-content">
+                    <ul class="feature-list">
+                        <li><strong>第二幕：泪水之池</strong> - 爱丽丝初次体验到仙境的"不讲理"，她的眼泪象征着面对无力改变的现实时的情绪宣泄。但她最终选择"止住眼泪"，获得了【无畏之核】，完成了从"被动承受"到"主动面对"的第一步心理转变。</li>
+                        <li><strong>第三幕：荒诞的迷宫</strong> - 柴郡猫（象征超然的、潜意识的智慧）引导爱丽丝做出核心选择：是获得【扭曲之力】（以力量对抗力量），还是【心之映射】（以理解洞察本质）。这个选择，预示了她解决冲突的根本方法论。</li>
+                        <li><strong>第四幕：疯狂茶话会</strong> - 爱丽丝通过解谜，收集了皇后的三大"罪证"：【破碎的庆典记忆】、【王权的锁链】、【皇后的隐秘悲哀】。这些不仅是通关道具，更是她理解皇后行为逻辑、建立共情基础的"卷宗"。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">第五幕：抉择的审判 —— 内心法庭上的自我辩论与现实隐喻</h2>
+                <div class="section-content">
+                    <p>最终对决并非物理战斗，而是爱丽丝与皇后（权威/创伤的化身）之间的一场"内心法庭"辩论。爱丽丝的每一次回答，都反映了她在现实中面对质疑和压迫时的不同应对策略。</p>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">阶段一：瓦解"秩序"的伪装</h3>
+                    <div class="highlight-box">
+                        <strong>皇后立场：</strong>"你这渺小的入侵者！你竟敢质疑我的秩序？！"<br>
+                        <strong>现实隐喻：</strong>这是权威面对挑战时的第一反应："我的规则都是为你好，你一个孩子/新人懂什么？"他们将质疑者定义为"麻烦制造者"。
+                    </div>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">阶段二：解构"规则"的本质</h3>
+                    <div class="highlight-box">
+                        <strong>皇后立场：</strong>"我所做的一切，都是为了维护仙境的规则！"<br>
+                        <strong>"国王"的隐喻：</strong>皇后口中"笨拙的国王"，其"宽容"最终毁了一切。他代表了仙境过去的、信奉绝对自由却无力抵御"空虚"侵蚀的统治者。在现实中，"国王"象征着与皇后（偏执的控制）完全相反的另一个极端——"放任的溺爱"或"天真的理想主义"。
+                    </div>
+
+                    <h3 style="color: #8a2be2; font-size: 1.3rem; margin: 20px 0 10px 0;">阶段三：直面"悲哀"的核心</h3>
+                    <div class="highlight-box">
+                        <strong>皇后立场：</strong>"你们怎会懂，那种…那种'被掏空'的痛苦！！"<br>
+                        <strong>现实隐喻：</strong>权威的逻辑防线彻底崩溃，只剩下最原始的情感创伤。这是许多争吵的终点，一方会哭诉："你根本不明白我经历了什么！"
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">最终结局：四种人生的现实隐喻</h2>
+                <div class="section-content">
+                    <div class="highlight-box">
+                        <h4 style="color: #ff0000; margin-bottom: 10px;">🔴 结局1：【绝望的审判】</h4>
+                        <strong>触发条件：</strong>心智受损5次，在皇后的威压下崩溃<br>
+                        <strong>结局描述：</strong>爱丽丝成为永恒茶会的一部分<br>
+                        <strong>现实隐喻：</strong>这象征着"习得性无助"与"体制化"。当一个年轻人在反抗权威与社会压力中反复失败，他最终会放弃挣扎，失去自我。他不再尝试去理解或改变，而是选择麻木地融入这个"疯狂"的系统，成为自己曾经最讨厌的样子，日复一日地重复着毫无意义的"表演"（茶会）。这是最令人悲哀的精神死亡。
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4 style="color: #ff8c00; margin-bottom: 10px;">🟠 结局2：【胜利的代价】</h4>
+                        <strong>触发条件：</strong>持有【无畏之核】与【扭曲之力】<br>
+                        <strong>结局描述：</strong>爱丽丝用力量击溃皇后，但仙境也遍体鳞伤<br>
+                        <strong>现实隐喻：</strong>这象征着"破坏性的反抗"。如同一个通过激烈争吵、离家出走等方式"战胜"了父母的叛逆青年。他赢得了表面的自由，但代价是关系的彻底破裂和内心留下的巨大创伤。他学会了用对抗来解决问题，却可能在未来的人生中，不自觉地成为新的"暴君"。这是一场没有真正赢家的胜利。
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4 style="color: #808080; margin-bottom: 10px;">⚪ 结局3：【寂静的解放】</h4>
+                        <strong>触发条件：</strong>始终可选，或未能达成其他结局<br>
+                        <strong>结局描述：</strong>暴政瓦解，但仙境陷入沉寂，失去了指引<br>
+                        <strong>现实隐喻：</strong>这象征着"迷茫的自由"。一个人成功地摆脱了原生家庭或旧有环境的束缚，但他并不知道自己接下来要去哪里，要做什么。他拥有了"不做某事的自由"，却没有找到"去做某事的热情"。这是一种空虚的、缺乏方向感的解放，虽然不再痛苦，但也失去了活力。
+                    </div>
+
+                    <div class="highlight-box">
+                        <h4 style="color: #00ff00; margin-bottom: 10px;">🟢 结局4：【和解与解放】</h4>
+                        <strong>触发条件：</strong>持有【无畏之核】与【共鸣之石】<br>
+                        <strong>结局描述：</strong>爱丽丝治愈了皇后，仙境重获新生<br>
+                        <strong>现实隐喻：</strong>这象征着"成熟的个体化"与"真正的和解"。这是成长的最终极、最理想的形态。爱丽丝（自我）没有消灭皇后（创伤/权威），也没有被她同化。而是通过理解和共情，帮助皇后从"创伤的囚徒"中解脱出来。在现实中，这意味着一个人最终能够理解父母或过去的经历为何会造就今天的局面，不再怨恨，而是选择带着这份理解，独立而完整地走向自己的人生。他不仅解放了自己，也从精神上"治愈"了过去对自己的影响。这才是真正的、充满活力的自由。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 粒子系统
+        class ParticleSystem {
+            constructor() {
+                this.particles = [];
+                this.container = document.querySelector('.particles-container');
+                this.createParticles();
+            }
+
+            createParticles() {
+                for (let i = 0; i < 50; i++) {
+                    setTimeout(() => {
+                        this.createParticle();
+                    }, i * 100);
+                }
+            }
+
+            createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * window.innerWidth + 'px';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (8 + Math.random() * 4) + 's';
+                
+                this.container.appendChild(particle);
+                
+                // 动画结束后移除粒子并创建新粒子
+                particle.addEventListener('animationend', () => {
+                    this.container.removeChild(particle);
+                    this.createParticle();
+                });
+            }
+        }
+
+        // Matter.js 特效系统
+        let engine, render, world;
+
+        function initEffects() {
+            const canvas = document.getElementById('effect-canvas');
+            
+            // 创建引擎
+            engine = Matter.Engine.create();
+            engine.world.gravity.scale = 0;
+
+            // 创建渲染器
+            render = Matter.Render.create({
+                canvas: canvas,
+                engine: engine,
+                options: {
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    wireframes: false,
+                    background: 'transparent'
+                }
+            });
+
+            world = engine.world;
+
+            // 创建吸引体
+            const attractiveBody = Matter.Bodies.circle(
+                window.innerWidth / 2,
+                window.innerHeight / 2,
+                Math.min(window.innerWidth, window.innerHeight) / 36,
+                {
+                    isStatic: true,
+                    render: {
+                        fillStyle: 'transparent'
+                    },
+                    plugin: {
+                        attractors: [
+                            function(bodyA, bodyB) {
+                                return {
+                                    x: (bodyA.position.x - bodyB.position.x) * 1e-6,
+                                    y: (bodyA.position.y - bodyB.position.y) * 1e-6,
+                                };
+                            }
+                        ]
+                    }
+                }
+            );
+
+            Matter.World.add(world, attractiveBody);
+
+            // 添加形状
+            for (let i = 0; i < 15; i++) {
+                let x = Math.random() * window.innerWidth;
+                let y = Math.random() * window.innerHeight;
+                let sides = Math.floor(Math.random() * 4) + 3;
+                let size = Math.random() * 5 + 3;
+
+                const shape = Matter.Bodies.polygon(x, y, sides, size, {
+                    mass: size / 20,
+                    friction: 0,
+                    frictionAir: 0.05,
+                    render: {
+                        fillStyle: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`,
+                        strokeStyle: '#fff',
+                        lineWidth: 1
+                    },
+                    plugin: {
+                        wrap: {
+                            min: { x: 0, y: 0 },
+                            max: { x: window.innerWidth, y: window.innerHeight }
+                        }
+                    }
+                });
+
+                Matter.World.add(world, shape);
+            }
+
+            // 鼠标交互
+            const mouse = Matter.Mouse.create(render.canvas);
+            Matter.Events.on(engine, 'afterUpdate', function() {
+                if (!mouse.position.x) return;
+                Matter.Body.translate(attractiveBody, {
+                    x: (mouse.position.x - attractiveBody.position.x) * 0.1,
+                    y: (mouse.position.y - attractiveBody.position.y) * 0.1
+                });
+            });
+
+            // 启动引擎
+            Matter.Runner.run(engine);
+            Matter.Render.run(render);
+        }
+
+        // 音频控制
+        const audio = document.getElementById('backgroundMusic');
+        const audioToggle = document.getElementById('audioToggle');
+        let isAudioMuted = false;
+
+        function initializeAudio() {
+            // 从本地存储加载设置
+            const savedSettings = localStorage.getItem('audioSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                audio.volume = settings.volume || 0.5;
+                isAudioMuted = settings.muted || false;
+            } else {
+                audio.volume = 0.5;
+            }
+
+            updateAudioButton();
+
+            // 自动播放（如果没有静音）
+            audio.addEventListener('canplaythrough', () => {
+                if (!isAudioMuted) {
+                    audio.play().catch(() => {
+                        console.log('自动播放被阻止，需要用户交互');
+                    });
+                }
+            });
+        }
+
+        function toggleAudio() {
+            if (isAudioMuted) {
+                isAudioMuted = false;
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else {
+                isAudioMuted = true;
+                audio.pause();
+            }
+            
+            updateAudioButton();
+            saveAudioSettings();
+        }
+
+        function updateAudioButton() {
+            if (isAudioMuted || audio.paused) {
+                audioToggle.textContent = '🔇';
+                audioToggle.classList.add('muted');
+            } else {
+                audioToggle.textContent = '🔊';
+                audioToggle.classList.remove('muted');
+            }
+        }
+
+        function saveAudioSettings() {
+            const settings = {
+                volume: audio.volume,
+                muted: isAudioMuted
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+        }
+
+        // 窗口大小调整
+        function handleResize() {
+            if (render) {
+                render.canvas.width = window.innerWidth;
+                render.canvas.height = window.innerHeight;
+                render.options.width = window.innerWidth;
+                render.options.height = window.innerHeight;
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化粒子系统
+            new ParticleSystem();
+            
+            // 初始化特效
+            if (typeof Matter !== 'undefined') {
+                Matter.use('matter-attractors');
+                Matter.use('matter-wrap');
+                initEffects();
+            }
+            
+            // 初始化音频
+            initializeAudio();
+            
+            // 绑定事件
+            audioToggle.addEventListener('click', toggleAudio);
+            window.addEventListener('resize', handleResize);
+        });
+    </script>
+</body>
+</html> 

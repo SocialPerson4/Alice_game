@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱丽丝梦游仙境：棋盘迷局</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 页面主体样式 */
+        body {
+            font-family: 'Noto Serif SC', serif; /* 设置字体 */
+            background-image: url("img/背景1.0.png"); /* 背景图片 */
+            background-size: contain; /* 确保背景图片完整显示 */
+            background-repeat: no-repeat; /* 防止图片重复 */
+            background-position: center; /* 图片居中 */
+            overflow: hidden; /* 隐藏溢出内容 */
+        }
+        /* 引入动画覆盖层 */
+        #intro-overlay {
+            transition: opacity 1s ease-out; /* 覆盖层自身的淡出动画 */
+        }
+
+        /* 内部闪光元素 */
+        #intro-flash {
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.5) 30%, rgba(255, 255, 255, 0) 70%);
+            transform: scale(0); /* 初始状态，不可见 */
+            opacity: 0; /* 初始透明 */
+            animation: introFlash 1.5s forwards cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 闪光动画 */
+        }
+
+        /* 定义闪光动画 */
+        @keyframes introFlash {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+                background: radial-gradient(circle at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.5) 30%, rgba(255, 255, 255, 0) 70%);
+            }
+            30% {
+                transform: scale(3); /* 快速放大 */
+                opacity: 1; /* 完全不透明 */
+            }
+            70% {
+                transform: scale(1.5); /* 开始缩小 */
+                opacity: 0.8;
+                background: radial-gradient(circle at center, rgba(255, 105, 180, 0.8) 0%, rgba(138, 43, 226, 0.6) 30%, rgba(0, 0, 0, 0) 70%); /* 渐变颜色变化 */
+            }
+            100% {
+                transform: scale(10); /* 彻底放大 */
+                opacity: 0; /* 完全透明 */
+            }
+        }
+        /* 场景容器样式 */
+        .scene {
+            display: none; /* 默认隐藏 */
+            width: 100%; /* 宽度占满 */
+            height: calc(100vh - 80px); /* 高度计算，减去导航栏高度 */
+            perspective: 1000px; /* 3D透视效果 */
+        }
+        /* 激活场景样式 */
+        .scene.active {
+            display: flex; /* 激活时显示为flex布局 */
+        }
+
+        /* 棋盘样式 */
+        .chessboard {
+            display: grid; /* 网格布局 */
+            grid-template-columns: repeat(8, 1fr); /* 8列等宽 */
+            grid-template-rows: repeat(8, 1fr); /* 8行等高 */
+            width: 80vmin; /* 宽度相对于视口较小边 */
+            height: 80vmin; /* 高度相对于视口较小边 */
+            max-width: 600px; /* 最大宽度 */
+            max-height: 600px; /* 最大高度 */
+            border: 10px solid #8B4513; /* 边框 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); /* 阴影 */
+            position: relative; /* 相对定位 */
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* 变换过渡效果 */
+            transform-style: preserve-3d; /* 保留3D变换 */
+        }
+        /* 棋盘格样式 */
+        .cell {
+            width: 100%; /* 宽度占满父容器 */
+            height: 100%; /* 高度占满父容器 */
+            transition: visibility 0.2s; /* 可见性过渡 */
+        }
+        /* 奇数棋盘格背景色 */
+        .cell:nth-child(odd) { background-color: #f0d9b5; }
+        /* 偶数棋盘格背景色 */
+        .cell:nth-child(even) { background-color: #b58863; }
+
+        /* 角色样式 */
+        #alice {
+            position: absolute; /* 绝对定位 */
+            width: 12.5%; /* 宽度占棋盘的1/8 */
+            height: 12.5%; /* 高度占棋盘的1/8 */
+            background-image: url('./img/爱丽丝.jpg'); /* 爱丽丝图片 */
+            background-size: 90%; /* 背景图大小 */
+            background-repeat: no-repeat; /* 不重复 */
+            background-position: center; /* 居中 */
+            filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); /* 阴影效果 */
+            transition: top 0.3s ease, left 0.3s ease; /* 移动过渡效果 */
+            z-index: 10; /* Z轴层级 */
+        }
+        /* 士兵角色样式 */
+        .soldier {
+            position: absolute; /* 绝对定位 */
+            width: 12.5%; /* 宽度占棋盘的1/8 */
+            height: 12.5%; /* 高度占棋盘的1/8 */
+            background-image: url('./img/士兵2.0.png'); /* 士兵占位图 */
+            background-size: contain; /* 包含 */
+            background-repeat: no-repeat; /* 不重复 */
+            background-position: center; /* 居中 */
+            z-index: 5; /* Z轴层级 */
+            transition: top 0.3s linear, left 0.3s linear; /* 士兵移动过渡效果 */
+        }
+
+        /* 移除旧的士兵动画 */
+        .soldier.s1, .soldier.s2, .soldier.s3 { animation: none !important; }
+
+        /* 出口样式 */
+        #exit-gate {
+            position: absolute; /* 绝对定位 */
+            top: 0%;   /* 对应棋盘的第0行 (y=0) */
+            left: 87.5%; /* 对应棋盘的第7列 (x=7) */
+            width: 12.5%; /* 宽度占棋盘的1/8 */
+            height: 12.5%; /* 高度占棋盘的1/8 */
+            background-color: rgba(100, 200, 255, 0.4); /* 半透明蓝色 */
+            border: 3px dashed #fff; /* 虚线边框 */
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.8); /* 发光效果 */
+            display: flex; /* Flex布局 */
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            font-size: 2rem; /* 字体大小 */
+            color: #fff; /* 字体颜色 */
+            font-weight: bold; /* 字体加粗 */
+            text-shadow: 0 0 5px #000; /* 文本阴影 */
+            z-index: 8; /* 确保在棋盘格和士兵之间，在爱丽丝之下 */
+            pointer-events: none; /* 不响应鼠标事件 */
+        }
+
+
+        /* 通用信息弹窗样式 */
+        .info-popup {
+            position: absolute; /* 绝对定位 */
+            background-color: rgba(255, 255, 255, 0.85); /* 半透明背景 */
+            backdrop-filter: blur(4px); /* 背景模糊 */
+            padding: 1rem 1.5rem; /* 内边距 */
+            border-radius: 0.75rem; /* 圆角 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); /* 阴影 */
+            text-align: center; /* 文本居中 */
+            font-weight: bold; /* 字体加粗 */
+            opacity: 0; /* 默认透明 */
+            pointer-events: none; /* 默认不响应鼠标事件 */
+            transition: opacity 0.5s, transform 0.5s; /* 过渡效果 */
+            z-index: 20; /* Z轴层级 */
+        }
+        /* 弹窗显示时样式 */
+        .info-popup.show {
+            opacity: 1; /* 不透明 */
+            pointer-events: auto; /* 响应鼠标事件 */
+            transform: translateY(0); /* 恢复位置 */
+        }
+        /* 棋盘变异评论弹窗位置和颜色 */
+        #mutation-commentary { top: 10px; color: #8a2be2; transform: translateY(-20px); }
+
+        /* Gemini按钮样式 */
+        .gemini-btn {
+            background-color: #ff69b4; color: white; padding: 10px 20px;
+            border-radius: 9999px; font-weight: bold; box-shadow: 0 4px 10px rgba(255, 105, 180, 0.5);
+            transition: all 0.3s ease;
+        }
+        /* Gemini按钮悬停效果 */
+        .gemini-btn:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(255, 105, 180, 0.7); }
+        /* Gemini按钮禁用样式 */
+        .gemini-btn:disabled { background-color: #cccccc; cursor: not-allowed; box-shadow: none; }
+    </style>
+</head>
+<body class="bg-blue-100 flex flex-col items-center justify-center h-screen w-screen">
+
+<div id="intro-overlay" class="fixed inset-0 bg-black z-50 flex items-center justify-center">
+    <canvas id="intro-cool-canvas" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:1;"></canvas>
+    <div id="intro-flash" class="w-0 h-0 rounded-full"></div>
+</div>
+
+<nav class="bg-white/80 backdrop-blur-sm shadow-lg rounded-full p-2 m-4 z-30">
+    <div id="tabs" class="flex space-x-2">
+        <button data-scene="chessboard-scene" class="tab-btn px-6 py-2 rounded-full text-lg font-bold text-gray-700 bg-amber-200 shadow">棋盘皇后迷局</button>
+    </div>
+</nav>
+
+<main class="w-full flex-grow flex items-center justify-center">
+    <div id="chessboard-scene" class="scene active flex-col items-center justify-center">
+        <div id="mutation-commentary" class="info-popup"></div>
+        <div class="chessboard">
+            <div id="alice"></div>
+            <div class="soldier s1" id="soldier1"></div>
+            <div class="soldier s2" id="soldier2"></div>
+            <div class="soldier s3" id="soldier3"></div>
+            <div class="soldier s4" id="soldier4"></div>
+            <div id="exit-gate">出口</div> </div>
+        <p class="mt-4 text-gray-600 text-lg">使用方向键移动爱丽丝，躲避士兵，到达右上角即为胜利！</p>
+    </div>
+</main>
+
+<div id="game-over-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 text-center shadow-xl transform transition-all scale-95 opacity-0">
+        <h2 class="text-4xl font-bold text-red-600 mb-4">被抓住了！</h2>
+        <p id="gemini-scolding" class="text-gray-700 mb-6 text-lg min-h-[50px]">红皇后正在想怎么处置你...</p>
+        <button id="restart-btn" class="px-8 py-3 bg-blue-500 text-white font-bold rounded-full text-xl hover:bg-blue-600 transform hover:scale-105 transition">重新开始</button>
+    </div>
+</div>
+
+<div id="win-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 text-center shadow-xl transform transition-all scale-95 opacity-0">
+        <h2 class="text-4xl font-bold text-green-600 mb-4">恭喜你，胜利了！</h2>
+        <p class="text-gray-700 mb-6 text-lg">您通过棋盘皇后的迷局了，可以通往下一关了！！！</p>
+        <button id="restart-game-over-win-btn" class="px-8 py-3 bg-blue-500 text-white font-bold rounded-full text-xl hover:bg-blue-600 transform hover:scale-105 transition">重新开始游戏</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 全局元素和状态 ---
+        const scenes = document.querySelectorAll('.scene'); // 所有场景元素
+        const tabs = document.querySelectorAll('.tab-btn'); // 所有标签按钮
+        const chessboard = document.querySelector('.chessboard'); // 棋盘元素
+        const alice = document.getElementById('alice'); // 主角元素
+        const soldiers = [
+            document.getElementById('soldier1'),
+            document.getElementById('soldier2'),
+            document.getElementById('soldier3'),
+            document.getElementById('soldier4')
+        ];
+        const gameOverModal = document.getElementById('game-over-modal'); // 游戏结束模态框
+        const restartBtn = document.getElementById('restart-btn'); // 重新开始按钮
+        const winModal = document.getElementById('win-modal'); // 胜利模态框
+        const restartGameWinBtn = document.getElementById('restart-game-over-win-btn'); // 胜利后重新开始按钮
+        const boardSize = 8; // 棋盘大小 (8x8)
+        let alicePos = { x: 0, y: 7 }; // 爱丽丝的初始位置 (x, y)
+        let soldierPositions = [
+            { x: 2, y: 0 },
+            { x: 0, y: 4 },
+            { x: 5, y: 2 },
+            { x: 7, y: 5 }
+        ];
+        let gameLoopInterval = null; // 游戏循环定时器
+        let ruleChangeInterval = null; // 规则变异定时器
+        let soldierMoveInterval = null; // 士兵移动定时器
+
+        // --- Gemini API 调用函数 ---
+        async function callGemini(prompt) {
+            // 请在此处替换为您的实际 Gemini API 密钥
+            const apiKey = "YOUR_GEMINI_API_KEY"; // API 密钥将由环境注入
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API call failed: ${response.status}`);
+                const result = await response.json();
+                if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    return result.candidates[0].content.parts[0].text;
+                }
+                console.error("Unexpected API response:", result);
+                return "仙境的信号似乎被什么东西干扰了...";
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return "哦不，通往想象世界的电波中断了！";
+            }
+        }
+
+        // --- 场景切换逻辑 (简化为只有一个场景) ---
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const sceneId = tab.dataset.scene;
+                tabs.forEach(t => t.classList.toggle('bg-amber-200', t.dataset.scene === sceneId));
+                tabs.forEach(t => t.classList.toggle('shadow', t.dataset.scene === sceneId));
+                tabs.forEach(t => t.classList.toggle('bg-white', t.dataset.scene !== sceneId));
+                scenes.forEach(scene => scene.classList.toggle('active', scene.id === sceneId));
+                // Only start game if it's the chessboard scene
+                if (sceneId === 'chessboard-scene') {
+                    startGame();
+                } else {
+                    stopGame();
+                }
+            });
+        });
+
+        // --- 场景1: 棋盘皇后迷局 ---
+        const mutationCommentary = document.getElementById('mutation-commentary');
+
+        function initChessboard() {
+            chessboard.innerHTML = '';
+            for (let i = 0; i < boardSize * boardSize; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                if ((Math.floor(i / boardSize) + i % boardSize) % 2 === 0) cell.style.backgroundColor = '#f0d9b5';
+                else cell.style.backgroundColor = '#b58863';
+                chessboard.appendChild(cell);
+            }
+            chessboard.appendChild(alice);
+            soldiers.forEach(s => chessboard.appendChild(s));
+            // Ensure exit gate is also appended
+            const exitGate = document.getElementById('exit-gate');
+            if (exitGate) { // Only append if it exists (which it should in the HTML)
+                chessboard.appendChild(exitGate);
+            }
+            updateSoldierPositions();
+        }
+
+        function updateAlicePosition() {
+            alice.style.left = `${alicePos.x * 12.5}%`;
+            alice.style.top = `${alicePos.y * 12.5}%`;
+        }
+
+        function updateSoldierPositions() {
+            soldiers.forEach((soldier, index) => {
+                soldier.style.left = `${soldierPositions[index].x * 12.5}%`;
+                soldier.style.top = `${soldierPositions[index].y * 12.5}%`;
+            });
+        }
+
+        function moveAlice(e) {
+            if (gameOverModal.classList.contains('hidden') && winModal.classList.contains('hidden')) {
+                let newX = alicePos.x;
+                let newY = alicePos.y;
+
+                switch (e.key) {
+                    case 'ArrowUp': newY--; break;
+                    case 'ArrowDown': newY++; break;
+                    case 'ArrowLeft': newX--; break;
+                    case 'ArrowRight': newX++; break;
+                }
+
+                if (newX >= 0 && newX < boardSize && newY >= 0 && newY < boardSize) {
+                    alicePos.x = newX;
+                    alicePos.y = newY;
+                    updateAlicePosition();
+                    checkWin();
+                    checkCollision();
+                }
+            }
+        }
+
+        function moveSoldiersTowardsAlice() {
+            soldiers.forEach((soldier, index) => {
+                let currentX = soldierPositions[index].x;
+                let currentY = soldierPositions[index].y;
+
+                let targetX = alicePos.x;
+                let targetY = alicePos.y;
+
+                const dx = targetX - currentX;
+                const dy = targetY - currentY;
+
+                let newX = currentX;
+                let newY = currentY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) newX++;
+                    else if (dx < 0) newX--;
+                } else if (Math.abs(dy) > 0) {
+                    if (dy > 0) newY++;
+                    else if (dy < 0) newY--;
+                }
+
+                if (newX >= 0 && newX < boardSize && newY >= 0 && newY < boardSize) {
+                    soldierPositions[index].x = newX;
+                    soldierPositions[index].y = newY;
+                }
+            });
+            updateSoldierPositions();
+            checkCollision();
+        }
+
+        function checkCollision() {
+            const aliceGridX = alicePos.x;
+            const aliceGridY = alicePos.y;
+
+            for (const sPos of soldierPositions) {
+                if (aliceGridX === sPos.x && aliceGridY === sPos.y) {
+                    endGame();
+                    break;
+                }
+            }
+        }
+
+        function checkWin() {
+            if (alicePos.x === 7 && alicePos.y === 0) {
+                stopGame();
+                winModal.classList.remove('hidden');
+                setTimeout(() => winModal.querySelector('div').classList.remove('scale-95', 'opacity-0'), 50);
+            }
+        }
+
+        async function announceMutation(description) {
+            const prompt = `You are the Cheshire Cat. Briefly and mysteriously describe this strange event on a chessboard: "${description}". Keep it to one sentence. Your response MUST be in Chinese.`;
+            const commentaryText = await callGemini(prompt);
+            mutationCommentary.textContent = commentaryText;
+            mutationCommentary.classList.add('show');
+            setTimeout(() => mutationCommentary.classList.remove('show'), 3500);
+        }
+
+        function mutateRules() {
+            const mutations = [
+                () => {
+                    const angle = (Math.random() - 0.5) * 60;
+                    chessboard.style.transform = `rotateX(${angle}deg) rotateZ(${angle/3}deg)`;
+                    announceMutation("棋盘开始疯狂地倾斜和旋转");
+                    setTimeout(() => { chessboard.style.transform = 'none'; }, 4000);
+                },
+                () => {
+                    const cells = chessboard.querySelectorAll('.cell');
+                    const hiddenCells = [];
+                    for(let i=0; i<8; i++) {
+                        const randomIndex = Math.floor(Math.random() * cells.length);
+                        if (cells[randomIndex] && cells[randomIndex].style.visibility !== 'hidden') {
+                            cells[randomIndex].style.visibility = 'hidden';
+                            hiddenCells.push(cells[randomIndex]);
+                        }
+                    }
+                    announceMutation("有些棋盘格凭空消失了");
+                    setTimeout(() => {
+                        hiddenCells.forEach(cell => cell.style.visibility = 'visible');
+                    }, 3000);
+                }
+            ];
+            mutations[Math.floor(Math.random() * mutations.length)]();
+        }
+
+        function startGame() {
+            if (gameLoopInterval) return;
+            alicePos = { x: 0, y: 7 };
+            updateAlicePosition();
+            soldierPositions = [
+                { x: 2, y: 0 },
+                { x: 0, y: 4 },
+                { x: 5, y: 2 },
+                { x: 7, y: 5 }
+            ];
+            updateSoldierPositions();
+
+            gameOverModal.classList.add('hidden');
+            gameOverModal.querySelector('div').classList.add('scale-95', 'opacity-0');
+            winModal.classList.add('hidden');
+            winModal.querySelector('div').classList.add('scale-95', 'opacity-0');
+            // document.addEventListener('keydown', moveAlice); // 移除，改为特效后再添加
+            gameLoopInterval = setInterval(checkCollision, 100);
+            ruleChangeInterval = setInterval(mutateRules, 12000);
+
+            // 延迟启动士兵移动，等待特效结束
+            setTimeout(() => {
+                const originalSoldierMoveInterval = 700;
+                const speedMultiplier = 1.5;
+                const newSoldierMoveInterval = originalSoldierMoveInterval / speedMultiplier;
+                soldierMoveInterval = setInterval(moveSoldiersTowardsAlice, newSoldierMoveInterval);
+            }, 2500); // 等待特效动画完成（1.5s闪光 + 1s淡出）
+        }
+
+        async function endGame() {
+            stopGame();
+            const geminiScolding = document.getElementById('gemini-scolding');
+            gameOverModal.classList.remove('hidden');
+            setTimeout(() => gameOverModal.querySelector('div').classList.remove('scale-95', 'opacity-0'), 50);
+            geminiScolding.textContent = '红皇后正在想怎么处置你...';
+            const prompt = "You are the Red Queen. Write a short, angry, and absurd scolding for Alice who was caught by your card soldiers. Keep it to one or two sentences. Your response MUST be in Chinese.";
+            geminiScolding.textContent = await callGemini(prompt);
+        }
+
+        function stopGame() {
+            document.removeEventListener('keydown', moveAlice);
+            clearInterval(gameLoopInterval);
+            clearInterval(ruleChangeInterval);
+            clearInterval(soldierMoveInterval);
+            gameLoopInterval = null;
+            ruleChangeInterval = null;
+            soldierMoveInterval = null;
+        }
+
+        restartBtn.addEventListener('click', () => { initChessboard(); startGame(); });
+        restartGameWinBtn.addEventListener('click', () => { initChessboard(); startGame(); });
+
+        // --- 初始启动 ---
+        // 新增: 入场动画逻辑
+        const introOverlay = document.getElementById('intro-overlay');
+        const introFlash = document.getElementById('intro-flash');
+        const coolCanvas = document.getElementById('intro-cool-canvas');
+        // 粒子爆炸特效
+        function playCoolIntroParticles() {
+            const ctx = coolCanvas.getContext('2d');
+            let W = window.innerWidth, H = window.innerHeight;
+            coolCanvas.width = W; coolCanvas.height = H;
+            window.addEventListener('resize', () => {
+                W = window.innerWidth; H = window.innerHeight;
+                coolCanvas.width = W; coolCanvas.height = H;
+            });
+            const particles = [];
+            const colors = ['#ff69b4','#8a2be2','#fffacd','#00eaff','#ffb347','#e0bbff','#fff'];
+            const centerX = W/2, centerY = H/2;
+            const count = 80;
+            for(let i=0;i<count;i++){
+                const angle = (2*Math.PI/count)*i + Math.random()*0.1;
+                const speed = 6+Math.random()*6;
+                particles.push({
+                    x:centerX, y:centerY,
+                    r:10+Math.random()*12,
+                    color:colors[Math.floor(Math.random()*colors.length)],
+                    vx:Math.cos(angle)*speed,
+                    vy:Math.sin(angle)*speed,
+                    alpha:1
+                });
+            }
+            let frame=0;
+            function draw() {
+                ctx.clearRect(0,0,W,H);
+                for(const p of particles){
+                    ctx.save();
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x,p.y,p.r,0,2*Math.PI);
+                    ctx.fillStyle=p.color;
+                    ctx.shadowColor=p.color;
+                    ctx.shadowBlur=24;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+            function update() {
+                for(const p of particles){
+                    p.x+=p.vx;
+                    p.y+=p.vy;
+                    p.r*=0.97;
+                    p.alpha*=0.96;
+                }
+            }
+            function animate() {
+                update();
+                draw();
+                frame++;
+                if(frame<60) requestAnimationFrame(animate);
+            }
+            animate();
+        }
+        // 等待闪光动画播放完毕后再隐藏覆盖层
+        introFlash.addEventListener('animationend', () => {
+            introOverlay.style.opacity = '0'; // 开始淡出
+            introOverlay.addEventListener('transitionend', () => {
+                introOverlay.remove(); // 动画结束后移除元素
+                // 特效完全结束后才开始游戏
+                initChessboard();
+                startGame();
+                // 现在才允许键盘操作爱丽丝
+                document.addEventListener('keydown', moveAlice);
+            }, { once: true });
+        });
+        // 初始化棋盘但不立即开始游戏
+        initChessboard();
+        // 播放酷炫粒子特效
+        playCoolIntroParticles();
+    });
+</script>
+</body>
+</html>

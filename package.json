@@ -1,0 +1,34 @@
+{
+  "name": "alice-wonderland-visual-novel",
+  "version": "1.0.0",
+  "description": "基于 Web 技术的多章节互动视觉小说课程项目",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "check": "node --check src/server.js && node scripts/check-project.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "visual-novel",
+    "game",
+    "alice-wonderland",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "《奇域梦幻漫游录》课程项目组",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

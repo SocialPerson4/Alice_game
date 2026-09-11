@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成就系统 - 奇幻梦游录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'Cinzel', serif;
+            background: url('img/背景.png') center center fixed;
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: white;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 添加半透明遮罩层，确保文字可读性 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 背景粒子效果 - 已禁用，使用GIF背景 */
+        .background-canvas {
+            display: none;
+        }
+
+        /* 主容器 */
+        .achievements-container {
+            position: relative;
+            z-index: 15;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* 音频控制按钮 */
+        .audio-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .audio-toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-toggle-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+        }
+
+        .audio-toggle-btn.muted {
+            background: rgba(255, 100, 100, 0.3);
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        .audio-toggle-btn.muted:hover {
+            background: rgba(255, 100, 100, 0.4);
+            box-shadow: 0 15px 35px rgba(255, 100, 100, 0.4);
+        }
+
+        /* 返回主页链接 */
+        .back-home {
+            position: fixed;
+            top: 20px;
+            left: 80px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-home:hover {
+            color: #add8e6;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .achievements-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(173, 216, 230, 0.5);
+        }
+
+        .achievements-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(173, 216, 230, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #add8e6;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 5px;
+        }
+
+        /* 过滤器 */
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+
+        .filter-tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 25px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .filter-tab.active {
+            background: rgba(173, 216, 230, 0.2);
+            border-color: #add8e6;
+            color: #add8e6;
+            box-shadow: 0 0 15px rgba(173, 216, 230, 0.3);
+        }
+
+        .filter-tab:hover {
+            border-color: rgba(173, 216, 230, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* 成就网格 */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .achievement-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-card.unlocked {
+            border-color: #add8e6;
+            box-shadow: 0 10px 30px rgba(173, 216, 230, 0.2);
+        }
+
+        .achievement-card.unlocked::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6, #87ceeb);
+            border-radius: 20px;
+            z-index: -1;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        .achievement-card.locked {
+            opacity: 0.6;
+            filter: grayscale(50%);
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .achievement-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .achievement-icon {
+            font-size: 3rem;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border: 2px solid rgba(173, 216, 230, 0.3);
+        }
+
+                 .achievement-info h3 {
+             font-size: 1.3rem;
+             font-weight: 700;
+             margin-bottom: 8px;
+             color: #add8e6;
+         }
+
+         .achievement-meta {
+             display: flex;
+             gap: 10px;
+             align-items: center;
+             flex-wrap: wrap;
+         }
+
+         .achievement-rarity {
+             display: inline-block;
+             padding: 4px 12px;
+             border-radius: 15px;
+             font-size: 0.8rem;
+             font-weight: 600;
+             text-transform: uppercase;
+         }
+
+         .achievement-points {
+             background: rgba(255, 215, 0, 0.2);
+             color: #ffd700;
+             padding: 4px 8px;
+             border-radius: 10px;
+             font-size: 0.75rem;
+             font-weight: 600;
+             border: 1px solid rgba(255, 215, 0, 0.3);
+         }
+
+        .rarity-common {
+            background: rgba(128, 128, 128, 0.3);
+            color: #c0c0c0;
+        }
+
+        .rarity-uncommon {
+            background: rgba(34, 139, 34, 0.3);
+            color: #90ee90;
+        }
+
+        .rarity-rare {
+            background: rgba(0, 100, 200, 0.3);
+            color: #87ceeb;
+        }
+
+        .rarity-epic {
+            background: rgba(128, 0, 128, 0.3);
+            color: #dda0dd;
+        }
+
+        .achievement-description {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .achievement-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .unlock-date {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .unlock-status {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-unlocked {
+            background: rgba(34, 139, 34, 0.3);
+            color: #90ee90;
+            border: 1px solid rgba(34, 139, 34, 0.5);
+        }
+
+        .status-locked {
+            background: rgba(128, 128, 128, 0.3);
+            color: #c0c0c0;
+            border: 1px solid rgba(128, 128, 128, 0.5);
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(173, 216, 230, 0.3);
+            border-top: 3px solid #add8e6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 动画 */
+        @keyframes glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .achievements-container {
+                padding: 20px 15px;
+            }
+
+            .achievements-title {
+                font-size: 2.5rem;
+            }
+
+            .achievements-stats {
+                flex-direction: column;
+                gap: 15px;
+                align-items: center;
+            }
+
+            .filter-tabs {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .filter-tab {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+
+            .achievements-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .achievement-card {
+                padding: 20px;
+            }
+
+            .achievement-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .achievement-icon {
+                font-size: 2.5rem;
+                width: 70px;
+                height: 70px;
+            }
+        }
+    </style>
+    <!-- 引入音频设置模块 -->
+    <script src="js/audio-settings.js"></script>
+</head>
+<body>
+    <!-- 背景画布 -->
+    <canvas class="background-canvas" id="backgroundCanvas"></canvas>
+
+    <!-- 音频控制按钮 -->
+    <div class="audio-button" id="audioButton">
+        <button class="audio-toggle-btn" id="audioToggle">🔊</button>
+    </div>
+
+    <!-- 返回主页链接 -->
+    <a href="/" class="back-home">
+        ← 返回主页
+    </a>
+
+    <!-- 成就容器 -->
+    <div class="achievements-container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h1 class="achievements-title">仙境成就</h1>
+            <div class="achievements-stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="unlockedCount">0</span>
+                    <div class="stat-label">已解锁</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <div class="stat-label">总计</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="totalPoints">0</span>
+                    <div class="stat-label">总积分</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="completionRate">0%</span>
+                    <div class="stat-label">完成度</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 过滤器 -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">全部</button>
+            <button class="filter-tab" data-filter="unlocked">已解锁</button>
+            <button class="filter-tab" data-filter="locked">未解锁</button>
+            <button class="filter-tab" data-filter="common">普通</button>
+            <button class="filter-tab" data-filter="uncommon">稀有</button>
+            <button class="filter-tab" data-filter="rare">史诗</button>
+            <button class="filter-tab" data-filter="epic">传说</button>
+        </div>
+
+        <!-- 成就网格 -->
+        <div class="achievements-grid" id="achievementsGrid">
+            <!-- 加载状态 -->
+            <div class="loading" id="loadingState">
+                <div class="loading-spinner"></div>
+                <p>正在加载成就数据...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 背景粒子效果
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = `rgba(${255}, ${215 + Math.random() * 40}, ${Math.random() * 100}, ${Math.random() * 0.5 + 0.2})`;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                if (this.life <= 0) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = this.maxLife;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                const alpha = this.life / this.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 成就数据管理
+        let allAchievements = [];
+        let currentFilter = 'all';
+
+        // 获取认证token
+        function getAuthToken() {
+            return localStorage.getItem('token');
+        }
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                alert('请先登录！');
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+
+        // 加载成就数据
+        async function loadAchievements() {
+            if (!checkAuth()) return;
+
+            try {
+                // 同时加载成就列表和统计信息
+                const [achievementsResponse, statsResponse] = await Promise.all([
+                    fetch('/api/achievements', {
+                        headers: {
+                            'Authorization': `Bearer ${getAuthToken()}`
+                        }
+                    }),
+                    fetch('/api/achievements/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${getAuthToken()}`
+                        }
+                    })
+                ]);
+
+                const achievementsData = await achievementsResponse.json();
+                const statsData = await statsResponse.json();
+
+                if (achievementsData.success && statsData.success) {
+                    allAchievements = achievementsData.achievements.map(achievement => ({
+                        ...achievement,
+                        unlocked: achievement.unlocked === 1 || achievement.unlocked === true,
+                        unlockedAt: achievement.unlocked_at
+                    }));
+                    
+                    const stats = statsData.stats;
+                    updateStats(stats.totalCount, stats.unlockedCount, stats.totalPoints, stats.completionRate);
+                    displayAchievements(allAchievements);
+                } else {
+                    throw new Error('加载成就失败');
+                }
+            } catch (error) {
+                console.error('加载成就错误:', error);
+                showError('加载成就数据失败，请稍后重试');
+            }
+        }
+
+        // 更新统计信息
+        function updateStats(total, unlocked, points, completionRate) {
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('unlockedCount').textContent = unlocked;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+            
+            // 如果有积分显示区域，更新积分
+            const pointsElement = document.getElementById('totalPoints');
+            if (pointsElement) {
+                pointsElement.textContent = points || 0;
+            }
+        }
+
+        // 显示成就
+        function displayAchievements(achievements) {
+            const grid = document.getElementById('achievementsGrid');
+            const loadingState = document.getElementById('loadingState');
+
+            // 隐藏加载状态
+            if (loadingState) {
+                loadingState.style.display = 'none';
+            }
+
+            if (achievements.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>没有找到符合条件的成就</h3>
+                        <p>尝试切换其他过滤条件</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = achievements.map(achievement => `
+                <div class="achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}">
+                    <div class="achievement-header">
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-info">
+                            <h3>${achievement.title}</h3>
+                            <div class="achievement-meta">
+                                <span class="achievement-rarity rarity-${achievement.rarity}">${getRarityText(achievement.rarity)}</span>
+                                <span class="achievement-points">+${achievement.points}分</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievement-description">${achievement.description}</div>
+                    <div class="achievement-footer">
+                        <div class="unlock-date">
+                            ${achievement.unlocked && achievement.unlockedAt ? formatDate(achievement.unlockedAt) : ''}
+                        </div>
+                        <div class="unlock-status ${achievement.unlocked ? 'status-unlocked' : 'status-locked'}">
+                            ${achievement.unlocked ? '已解锁' : '未解锁'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 获取稀有度文本
+        function getRarityText(rarity) {
+            const rarityMap = {
+                'common': '普通',
+                'uncommon': '稀有',
+                'rare': '史诗',
+                'epic': '传说'
+            };
+            return rarityMap[rarity] || rarity;
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return `解锁于 ${date.toLocaleDateString('zh-CN')}`;
+        }
+
+        // 过滤成就
+        function filterAchievements(filter) {
+            let filtered = [];
+
+            switch (filter) {
+                case 'all':
+                    filtered = allAchievements;
+                    break;
+                case 'unlocked':
+                    filtered = allAchievements.filter(a => a.unlocked);
+                    break;
+                case 'locked':
+                    filtered = allAchievements.filter(a => !a.unlocked);
+                    break;
+                case 'common':
+                case 'uncommon':
+                case 'rare':
+                case 'epic':
+                    filtered = allAchievements.filter(a => a.rarity === filter);
+                    break;
+                default:
+                    filtered = allAchievements;
+            }
+
+            displayAchievements(filtered);
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            const grid = document.getElementById('achievementsGrid');
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <h3>❌ ${message}</h3>
+                    <button onclick="loadAchievements()" style="margin-top: 20px; padding: 10px 20px; background: rgba(173, 216, 230, 0.2); border: 1px solid #add8e6; border-radius: 5px; color: #add8e6; cursor: pointer;">重试</button>
+                </div>
+            `;
+        }
+
+        // 初始化过滤器
+        function initializeFilters() {
+            const filterTabs = document.querySelectorAll('.filter-tab');
+
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 移除其他tab的active状态
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    
+                    // 激活当前tab
+                    tab.classList.add('active');
+                    
+                    // 更新过滤器
+                    currentFilter = tab.dataset.filter;
+                    filterAchievements(currentFilter);
+                });
+            });
+        }
+
+        // 音频控制系统
+        const audio = document.createElement('audio');
+        audio.loop = true;
+        audio.src = 'music/爱丽丝的梦境.mp3';
+        document.body.appendChild(audio);
+        
+        const audioToggle = document.getElementById('audioToggle');
+
+        // 音频状态管理
+        let isAudioMuted = false;
+        let savedVolume = 0.5;
+
+        // 初始化音频设置
+        function initializeAudio() {
+            const savedAudioSettings = localStorage.getItem('audioSettings');
+            if (savedAudioSettings) {
+                const settings = JSON.parse(savedAudioSettings);
+                audio.volume = settings.volume || 0.5;
+                isAudioMuted = settings.muted || false;
+                savedVolume = settings.volume || 0.5;
+            } else {
+                audio.volume = 0.5;
+            }
+
+            updateAudioToggleButton();
+            
+            audio.addEventListener('canplaythrough', () => {
+                if (!isAudioMuted) {
+                    audio.play().catch(() => {
+                        console.log('需要用户交互才能播放音频');
+                    });
+                }
+            });
+        }
+
+        // 更新音频开关按钮
+        function updateAudioToggleButton() {
+            if (isAudioMuted || audio.paused) {
+                audioToggle.textContent = '🔇';
+                audioToggle.classList.add('muted');
+            } else {
+                audioToggle.textContent = '🔊';
+                audioToggle.classList.remove('muted');
+            }
+        }
+
+        // 切换音频播放/暂停
+        function toggleAudio() {
+            if (isAudioMuted) {
+                isAudioMuted = false;
+                audio.volume = savedVolume;
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else if (audio.paused) {
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else {
+                audio.pause();
+            }
+            updateAudioToggleButton();
+            saveAudioSettings();
+        }
+
+        // 保存音频设置
+        function saveAudioSettings() {
+            const settings = {
+                volume: savedVolume,
+                muted: isAudioMuted
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+        }
+
+        // 音频控制事件监听
+        audioToggle.addEventListener('click', toggleAudio);
+
+        // 页面初始化
+        window.addEventListener('load', () => {
+            initializeAudio();
+            initializeFilters();
+            loadAchievements();
+        });
+    </script>
+</body>
+</html> 

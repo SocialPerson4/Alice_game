@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字母聚集动画</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background-color: black;
+            font-family: 'Dancing Script', cursive;
+            overflow: hidden; /* 防止滑动时出现滚动条 */
+        }
+
+        .wonderland-scene {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .floating-letters {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .letter {
+            position: absolute;
+            font-size: 7rem;
+            font-weight: bold;
+            color: #FFD700;
+            opacity: 0;
+            /* 统一过渡属性，使其从初始位置直接平滑移动到最终位置 */
+            transition: all 1.5s ease-in-out, transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 调整持续时间 */
+            z-index: 10;
+            cursor: default; /* 默认鼠标样式 */
+        }
+
+        /* 聚集后的字母样式 (现在是直接到达最终位置后的样式) */
+        .letter.final-positioned {
+            color: #FFD700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            /* 保持错落效果的过渡 */
+            transition: all 0.8s ease-out, transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: auto; /* 聚集后可点击 */
+        }
+
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .letter.visible {
+            opacity: 1;
+            /* 调整漂浮动画的持续时间，例如 3s */
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%,
+            100% {
+                transform: translateY(0) rotate(var(--initial-rotate, 0deg));
+            }
+
+            50% {
+                transform: translateY(-30px) rotate(calc(var(--initial-rotate, 0deg) + 5deg));
+            }
+        }
+
+        .completed-message {
+            display: none;
+        }
+
+        .magic-sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #ffeb3b;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        @keyframes sparkle {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        .start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            background-color: #FFD700;
+            color: black;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .start-button:hover {
+            background-color: #e6c200;
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        .center-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background-color: rgba(255, 215, 0, 0.8);
+            z-index: 99;
+            width: 50px;
+            height: 50px;
+        }
+
+        .ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background-color: rgba(255, 215, 0, 0.3);
+            z-index: 5;
+        }
+
+        @keyframes rippleExpand {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 0.8;
+            }
+
+            100% {
+                width: 600px;
+                height: 600px;
+                opacity: 0;
+            }
+        }
+
+        .screen-shade {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+            transition: opacity 1s ease;
+        }
+
+        .letter-connector {
+            position: absolute;
+            height: 2px;
+            background-color: #FFD700;
+            transform-origin: left center;
+            z-index: 8;
+            opacity: 0;
+        }
+
+        /* 新增的离开动画 */
+        @keyframes slideOut {
+            to {
+                transform: translateX(100vw) rotate(10deg); /* 向右滑出屏幕并轻微旋转 */
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="wonderland-scene" id="scene">
+    <div class="screen-shade" id="screenShade"></div>
+    <button class="start-button" id="startBtn">开启仙境拼写</button>
+    <div class="floating-letters" id="lettersContainer"></div>
+
+</div>
+
+<script>
+    const targetWord = "WONDERLAND";
+    const lettersContainer = document.getElementById('lettersContainer');
+    const startBtn = document.getElementById('startBtn');
+    const completedMsg = document.getElementById('completedMsg'); // 确保这个元素存在或不使用
+    const scene = document.getElementById('scene');
+    const screenShade = document.getElementById('screenShade');
+
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
+
+    let letterElements = [];
+    let lettersGroup = null; // 用于存储聚集后的字母容器
+
+    function createLetters() {
+        lettersContainer.innerHTML = '';
+        letterElements = [];
+
+        for (let i = 0; i < targetWord.length; i++) {
+            const letter = targetWord[i];
+            const letterElement = document.createElement('div');
+            letterElement.className = 'letter';
+            letterElement.textContent = letter;
+            letterElement.dataset.index = i; // 存储字母索引
+
+            // 随机生成初始字体大小，范围可以调整
+            const minFontSize = 5; // rem
+            const maxFontSize = 9; // rem
+            const initialFontSize = minFontSize + Math.random() * (maxFontSize - minFontSize);
+            letterElement.style.fontSize = `${initialFontSize}rem`;
+
+            // 随机旋转角度 (初始漂浮阶段)
+            const initialRotation = (Math.random() - 0.5) * 60; // -30deg to +30deg
+            letterElement.style.setProperty('--initial-rotate', `${initialRotation}deg`);
+            letterElement.style.transform = `rotate(${initialRotation}deg)`;
+
+            const randomSide = Math.floor(Math.random() * 4);
+            let randomX, randomY;
+
+            // 扩大初始散布范围
+            const padding = 50; // 距离边缘的最小距离
+            const spreadFactor = 0.3; // 扩大散布范围的因子，可以调整
+
+            switch (randomSide) {
+                case 0: // Top
+                    randomX = padding + Math.random() * (window.innerWidth - 2 * padding);
+                    randomY = padding + Math.random() * (window.innerHeight * spreadFactor);
+                    break;
+                case 1: // Right
+                    randomX = window.innerWidth - padding - Math.random() * (window.innerWidth * spreadFactor);
+                    randomY = padding + Math.random() * (window.innerHeight - 2 * padding);
+                    break;
+                case 2: // Bottom
+                    randomX = padding + Math.random() * (window.innerWidth - 2 * padding);
+                    randomY = window.innerHeight - padding - Math.random() * (window.innerHeight * spreadFactor);
+                    break;
+                case 3: // Left
+                    randomX = padding + Math.random() * (window.innerWidth * spreadFactor);
+                    randomY = padding + Math.random() * (window.innerHeight - 2 * padding);
+                    break;
+            }
+
+            letterElement.style.left = `${randomX}px`;
+            letterElement.style.top = `${randomY}px`;
+            lettersContainer.appendChild(letterElement);
+            letterElements.push(letterElement);
+        }
+    }
+
+    function showLetters() {
+        letterElements.forEach((letter, index) => {
+            setTimeout(() => {
+                letter.classList.add('visible');
+            }, index * 200); // 字母出现间隔
+        });
+    }
+
+    function createSparkles(element) {
+        const rect = element.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < 10; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'magic-sparkle';
+            sparkle.style.left = `${centerX}px`;
+            sparkle.style.top = `${centerY}px`;
+            scene.appendChild(sparkle);
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30 + Math.random() * 50;
+            const destX = centerX + Math.cos(angle) * distance;
+            const destY = centerY + Math.sin(angle) * distance;
+
+            setTimeout(() => {
+                sparkle.style.transform = `translate(${destX - centerX}px, ${destY - centerY}px)`;
+                sparkle.style.animation = `sparkle 0.6s ease-out`;
+            }, 10);
+
+            setTimeout(() => sparkle.remove(), 600);
+        }
+    }
+
+    function createRipple() {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+        scene.appendChild(ripple);
+        ripple.style.animation = 'rippleExpand 2s ease-out forwards';
+        setTimeout(() => ripple.remove(), 2000);
+    }
+
+    // gatherLettersToFinalPosition 函数代替 gatherLettersToCenter
+    function gatherLettersToFinalPosition() {
+        createRipple(); // 仍然可以有波纹效果
+
+        lettersGroup = document.createElement('div');
+        lettersGroup.id = 'lettersGroup';
+        lettersGroup.style.position = 'absolute';
+        lettersGroup.style.left = `50%`;
+        lettersGroup.style.top = `50%`;
+        lettersGroup.style.transform = 'translate(-50%, -50%)';
+        lettersGroup.style.display = 'flex'; // 使用 flex 布局辅助居中和对齐
+        lettersGroup.style.alignItems = 'center';
+        lettersGroup.style.justifyContent = 'center';
+        lettersGroup.style.width = 'auto';
+        lettersGroup.style.transition = 'none'; // 移除lettersGroup自身的过渡
+        scene.appendChild(lettersGroup);
+
+        const totalLetters = targetWord.length;
+        const midPoint = (totalLetters - 1) / 2;
+
+        letterElements.forEach((letter, index) => {
+            const delay = index * 100; // 每个字母开始移动的延迟，使其依次入场
+
+            // 粒子效果可以在字母开始移动时触发
+            setTimeout(() => {
+                createSparkles(letter);
+            }, delay);
+
+            const minFinalSize = 5;
+            const maxFinalSize = 9;
+            let finalFontSize;
+
+            // 根据位置调整大小（中间大两边小）
+            if (index <= midPoint) {
+                finalFontSize = minFinalSize + (maxFinalSize - minFinalSize) * (index / midPoint);
+            } else {
+                finalFontSize = minFinalSize + (maxFinalSize - minFinalSize) * ((totalLetters - 1 - index) / midPoint);
+            }
+            letter.style.fontSize = `${finalFontSize}rem`;
+
+            // 增加随机偏移量和旋转角度，创造错落感
+            const randomXOffset = (Math.random() - 0.5) * 10; // 更小的偏移
+            const randomYOffset = (Math.random() - 0.5) * 5;
+            const randomRotation = (Math.random() - 0.5) * 5; // 更小的旋转
+
+            // 将字母从当前散落位置移动到 lettersGroup 的最终相对位置
+            // 这里不再是 absolute 定位到 scene 上，而是让其进入 flex 容器
+            // 然后通过 transform 调整其在 flex 容器内的最终微调位置
+            setTimeout(() => {
+                // 确保字母现在在 lettersGroup 容器中
+                lettersGroup.appendChild(letter);
+                letter.style.position = 'relative'; // 相对定位在 flex 容器内
+                letter.style.margin = '0 8px'; // 调整最终聚集后字母的间距
+                letter.style.opacity = '1';
+                letter.style.animation = 'none'; // 停止漂浮动画
+                letter.style.left = 'auto'; // 清除之前的 left/top
+                letter.style.top = 'auto'; // 清除之前的 left/top
+
+                // 直接应用最终的 transform，包括微调的偏移和旋转
+                letter.style.transform = `translate(${randomXOffset}px, ${randomYOffset}px) rotate(${randomRotation}deg)`;
+                // 调整 transition，使其从初始位置到最终位置的动画速度
+                letter.style.transition = `all 1.5s ease-in-out`; // 调整持续时间
+
+                letter.classList.add('final-positioned'); // 添加最终位置的类
+
+                // 检查是否所有字母都已到达最终位置
+                if (index === letterElements.length - 1) {
+                    setTimeout(completeFinalPositioning, 1000); // 确保所有字母动画完成再触发后续操作
+                }
+            }, delay + 500); // 加上一个小的延迟，让粒子效果先出来，然后字母开始移动
+        });
+    }
+
+    function completeFinalPositioning() {
+        // 完成最终排布后，创建连接线
+        createConnectors(lettersGroup);
+
+        // 给聚集后的字母组添加点击事件监听器
+        lettersGroup.addEventListener('click', slideLettersOut);
+    }
+
+
+    function createConnectors(container) {
+        const letters = container.querySelectorAll('.letter');
+        if (letters.length <= 1) return; // 只有一个字母或没有字母时不需要连接线
+
+        // 清除旧的连接线
+        container.querySelectorAll('.letter-connector').forEach(conn => conn.remove());
+
+        for (let i = 0; i < letters.length - 1; i++) {
+            // 使用 setTimeout 制造顺序出现效果
+            setTimeout(() => {
+                const connector = document.createElement('div');
+                connector.className = 'letter-connector';
+                const leftLetter = letters[i];
+                const rightLetter = letters[i + 1];
+
+                // 获取字母的实际渲染位置
+                const leftRect = leftLetter.getBoundingClientRect();
+                const rightRect = rightLetter.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                // 计算连接线的起始点和长度 (相对于 lettersGroup)
+                const startX = (leftRect.right - leftRect.width / 4) - containerRect.left;
+                const endX = (rightRect.left + rightRect.width / 4) - containerRect.left;
+                const midY = ((leftRect.top + leftRect.bottom) / 2 + (rightRect.top + rightRect.bottom) / 2) / 2 - containerRect.top;
+
+                const connectorWidth = endX - startX;
+
+                connector.style.left = `${startX}px`;
+                connector.style.top = `${midY}px`;
+                connector.style.width = `${connectorWidth}px`;
+                connector.style.transform = `translateY(-50%)`; // 垂直居中连接线
+
+                container.appendChild(connector);
+
+                setTimeout(() => {
+                    connector.style.opacity = '1';
+                    setTimeout(() => {
+                        connector.style.opacity = '0';
+                        setTimeout(() => connector.remove(), 200);
+                    }, 200);
+                }, 100);
+            }, i * 100); // 连接线出现间隔
+        }
+    }
+
+    // 新增：字母滑走动画函数
+    function slideLettersOut() {
+        if (!lettersGroup) return;
+
+        // 移除点击事件，防止重复触发
+        lettersGroup.removeEventListener('click', slideLettersOut);
+        lettersGroup.style.pointerEvents = 'none'; // 禁用点击
+
+        // 隐藏连接线
+        lettersGroup.querySelectorAll('.letter-connector').forEach(conn => {
+            conn.style.opacity = '0';
+            setTimeout(() => conn.remove(), 500);
+        });
+
+        // 让每个字母按顺序滑走
+        letterElements.forEach((letter, index) => {
+            setTimeout(() => {
+                letter.style.transition = 'transform 0.8s ease-in-out, opacity 0.6s ease-out'; // 滑走动画持续时间
+                // 滑出屏幕右侧，并添加随机的Y轴偏移和旋转，模拟“鸭子走路”
+                const finalTranslateY = (Math.random() - 0.5) * 100; // -50px to +50px 垂直偏移
+                const finalRotate = (Math.random() - 0.5) * 30; // -15deg to +15deg 旋转
+
+                // 获取字母当前的绝对位置，并基于此计算新的 transform
+                const currentRect = letter.getBoundingClientRect();
+                const currentLeft = currentRect.left;
+                const currentTop = currentRect.top;
+
+                // 简化处理：直接在原有 transform 基础上添加偏移和旋转
+                // 由于 .letter 样式中已经有 translate(-50%, -50%) 和随机偏移旋转
+                // 我们需要确保新的 transform 覆盖或组合这些
+                letter.style.transform = `
+                    translateX(${window.innerWidth - currentLeft + 200}px)
+                    translateY(${finalTranslateY}px)
+                    rotate(${finalRotate}deg)
+                `;
+                letter.style.opacity = '0';
+
+                // 动画结束后移除字母元素
+                setTimeout(() => {
+                    letter.remove();
+                    // 如果所有字母都移除了，可以移除 lettersGroup
+                    if (lettersContainer.childElementCount === 0) { // 检查 lettersContainer 中的子元素数量
+                        if (lettersGroup && lettersGroup.parentNode) {
+                            lettersGroup.parentNode.removeChild(lettersGroup);
+                            lettersGroup = null; // 清空引用
+                            // 动画完成后可以重置或进行下一步操作
+                            resetAnimation();
+                        }
+                    }
+                }, 800); // 动画持续时间
+            }, index * 80); // 每个字母延迟 依次滑走
+        });
+    }
+
+    function resetAnimation() {
+        // 重置按钮
+        startBtn.style.opacity = '1';
+        startBtn.style.transform = 'translate(-50%, -50%) scale(1)';
+        startBtn.style.pointerEvents = 'auto';
+        createLetters(); // 重新创建字母，回到初始状态
+    }
+
+
+    function playCompletionSound() {
+        const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-magic-whistler-1613.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(err => console.log('播放音效需要用户交互'));
+    }
+
+    function explodeButton(button) {
+        const rect = button.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < 20; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'magic-sparkle';
+            sparkle.style.left = `${centerX}px`;
+            sparkle.style.top = `${centerY}px`;
+            scene.appendChild(sparkle);
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 10 + Math.random() * 30;
+            const destX = centerX + Math.cos(angle) * distance;
+            const destY = centerY + Math.sin(angle) * distance;
+
+            setTimeout(() => {
+                sparkle.style.transform = `translate(${destX - centerX}px, ${destY - centerY}px)`;
+                sparkle.style.animation = `sparkle 0.6s ease-out`;
+            }, 10);
+
+            setTimeout(() => sparkle.remove(), 600);
+        }
+    }
+
+    function startAnimation() {
+        explodeButton(startBtn);
+        startBtn.style.opacity = '0';
+        startBtn.style.transform = 'translate(-50%, -50%) scale(0)';
+        startBtn.style.pointerEvents = 'none';
+
+        screenShade.style.opacity = '0.8';
+        setTimeout(() => {
+            screenShade.style.opacity = '0';
+        }, 800); // 遮罩消失时间
+
+        setTimeout(() => {
+            showLetters();
+
+            setTimeout(() => {
+                // 调用新的函数：直接聚集到最终位置
+                gatherLettersToFinalPosition();
+            }, 1000); // 字母聚集开始前的延迟
+        }, 800); // 字母显示开始前的延迟
+    }
+
+    window.addEventListener('resize', () => {
+        targetX = window.innerWidth / 2;
+        targetY = window.innerHeight / 2;
+
+        // Resize处理：将字母重新放回lettersContainer，然后重新进行聚集过程
+        // 只有当 lettersGroup 存在时才进行重置
+        if (lettersGroup) {
+            // 移除监听器，防止点击事件在重置过程中被触发
+            lettersGroup.removeEventListener('click', slideLettersOut);
+
+            // 清理所有连接线
+            lettersGroup.querySelectorAll('.letter-connector').forEach(conn => conn.remove());
+
+            letterElements.forEach(letter => {
+                // 如果字母还在 lettersGroup 里面，把它移出来
+                if (lettersGroup.contains(letter)) {
+                    lettersContainer.appendChild(letter); // 移回原来的容器
+                }
+
+                // 重置字母的样式，为下一次动画做准备
+                letter.style.position = 'absolute'; // 恢复绝对定位
+                letter.style.transform = ''; // 清除 transform
+                letter.style.margin = '0';
+                letter.style.left = 'auto';
+                letter.style.top = 'auto';
+                letter.classList.remove(...Array.from(letter.classList).filter(cls => cls.startsWith('final-'))); // 移除 final 类
+                letter.classList.remove('final-positioned'); // 移除最终定位的类
+                letter.style.transition = 'all 0.3s ease'; // 恢复初始过渡
+                letter.style.opacity = '0'; // 隐藏字母以便重新显示
+                letter.style.animation = 'none'; // 停止动画
+
+                // 重新设置初始位置和大小，以便 `createLetters` 重新绘制
+                const minFontSize = 5; // rem
+                const maxFontSize = 9; // rem
+                const initialFontSize = minFontSize + Math.random() * (maxFontSize - minFontSize);
+                letter.style.fontSize = `${initialFontSize}rem`;
+                const initialRotation = (Math.random() - 0.5) * 60;
+                letter.style.setProperty('--initial-rotate', `${initialRotation}deg`);
+                letter.style.transform = `rotate(${initialRotation}deg)`;
+
+                const randomSide = Math.floor(Math.random() * 4);
+                let randomX, randomY;
+                const padding = 50;
+                const spreadFactor = 0.3;
+                switch (randomSide) {
+                    case 0:
+                        randomX = padding + Math.random() * (window.innerWidth - 2 * padding);
+                        randomY = padding + Math.random() * (window.innerHeight * spreadFactor);
+                        break;
+                    case 1:
+                        randomX = window.innerWidth - padding - Math.random() * (window.innerWidth * spreadFactor);
+                        randomY = padding + Math.random() * (window.innerHeight - 2 * padding);
+                        break;
+                    case 2:
+                        randomX = padding + Math.random() * (window.innerWidth - 2 * padding);
+                        randomY = window.innerHeight - padding - Math.random() * (window.innerHeight * spreadFactor);
+                        break;
+                    case 3:
+                        randomX = padding + Math.random() * (window.innerWidth * spreadFactor);
+                        randomY = padding + Math.random() * (window.innerHeight - 2 * padding);
+                        break;
+                }
+                letter.style.left = `${randomX}px`;
+                letter.style.top = `${randomY}px`;
+            });
+
+            if (lettersGroup.parentNode) {
+                lettersGroup.parentNode.removeChild(lettersGroup); // 移除旧的 lettersGroup
+            }
+            lettersGroup = null; // 清空引用
+
+            // 重新开始动画流程
+            // 确保 resetAnimation 在 lettersGroup 被完全清除后才调用
+            setTimeout(() => {
+                resetAnimation();
+            }, 300); // 稍作延迟，确保 DOM 清理完毕，并加快重置速度
+
+        } else {
+            // 如果lettersGroup不存在，说明动画未开始或已重置，直接重新创建
+            createLetters();
+        }
+
+        if (completedMsg && completedMsg.style.display !== 'none') {
+            completedMsg.style.left = `50%`;
+            completedMsg.style.top = `65%`;
+            completedMsg.style.transform = 'translateX(-50%)';
+        }
+    });
+
+    scene.addEventListener('mousemove', (e) => {
+        letterElements.forEach(letter => {
+            const rect = letter.getBoundingClientRect();
+            // 检查letter是否包含任何以'final-'开头的类
+            const isFinal = Array.from(letter.classList).some(cls => cls.startsWith('final-'));
+
+            if (!isFinal &&
+                e.clientX > rect.left - 80 &&
+                e.clientX < rect.right + 80 &&
+                e.clientY > rect.top - 80 &&
+                e.clientY < rect.bottom + 80) {
+                letter.style.transitionTimingFunction = 'ease-out';
+                letter.style.color = '#FFD700';
+            } else if (!isFinal) {
+                letter.style.transitionTimingFunction = 'ease-out';
+            }
+        });
+    });
+
+    startBtn.addEventListener('click', startAnimation);
+
+    createLetters();
+</script>
+</body>
+
+</html>

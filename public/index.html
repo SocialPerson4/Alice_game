@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇域梦幻漫游录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'Cinzel', serif;
+            overflow: hidden;
+            background: url('img/背景.png') center center / cover no-repeat,
+                        linear-gradient(135deg, #1a4a5c, #2d5a87, #4a5d8a, #6b4c93);
+            background-attachment: fixed;
+            color: white;
+            height: 100vh;
+            cursor: none;
+        }
+
+        /* 自定义光标 */
+        .custom-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(173, 216, 230, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            transition: all 0.1s ease;
+            backdrop-filter: blur(2px);
+            background: radial-gradient(circle, rgba(173, 216, 230, 0.2), transparent);
+            box-shadow: 0 0 20px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 禁用自定义光标时的样式 */
+        body.no-custom-cursor .custom-cursor {
+            display: none !important;
+        }
+
+        body.no-custom-cursor {
+            cursor: auto;
+        }
+
+        /* 禁用粒子效果时的样式 */
+        body.no-particles .background-canvas {
+            display: none !important;
+        }
+
+        .custom-cursor.hover {
+            width: 50px;
+            height: 50px;
+            border-color: rgba(255, 182, 193, 1);
+            box-shadow: 0 0 30px rgba(255, 182, 193, 0.8);
+        }
+
+        /* 背景粒子系统 */
+        .background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 主容器 */
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        /* 游戏标题区域 */
+        .title-section {
+            position: relative;
+            text-align: center;
+            margin-bottom: 50px;
+            z-index: 10;
+        }
+
+        .game-title {
+            font-size: 4.5rem;
+            font-weight: 900;
+            font-family: 'Cinzel', 'Noto Serif SC', serif;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6, #87ceeb);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: title-glow 3s ease-in-out infinite, title-gradient 2s linear infinite;
+            text-shadow: 0 0 50px rgba(173, 216, 230, 0.5);
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .game-title::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shine 3s ease-in-out infinite;
+        }
+
+        .game-subtitle {
+            font-size: 1.8rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Noto Serif SC', serif;
+            letter-spacing: 2px;
+            animation: subtitle-float 4s ease-in-out infinite;
+            text-shadow: 0 0 20px rgba(255, 182, 193, 0.6);
+        }
+
+        /* 中央游戏区域 */
+        .game-main-area {
+            display: none;
+        }
+
+        /* 仙境时钟 */
+        .wonderland-clock {
+            width: 180px;
+            height: 180px;
+            border: 3px solid rgba(173, 216, 230, 0.8);
+            border-radius: 50%;
+            position: fixed;
+            bottom: 5%;
+            right: 5%;
+            background: 
+                radial-gradient(circle at center, 
+                    rgba(255, 255, 255, 0.1) 0%, 
+                    rgba(173, 216, 230, 0.08) 40%, 
+                    rgba(255, 182, 193, 0.05) 100%);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 0 40px rgba(173, 216, 230, 0.4),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            z-index: 20;
+            animation: clock-rotation 12s linear infinite;
+        }
+
+        .wonderland-clock::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 130px;
+            height: 130px;
+            border: 2px dashed rgba(255, 182, 193, 0.6);
+            border-radius: 50%;
+            animation: rotate-reverse 18s linear infinite;
+            box-shadow: 0 0 20px rgba(255, 182, 193, 0.3);
+        }
+
+        .wonderland-clock::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border: 1px dotted rgba(255, 215, 0, 0.7);
+            border-radius: 50%;
+            animation: rotate 8s linear infinite;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* 仙境符号 */
+        .wonderland-symbol {
+            position: absolute;
+            font-size: 1.2rem;
+            color: rgba(173, 216, 230, 0.9);
+            animation: symbol-glow 4s ease-in-out infinite;
+            font-family: 'Cinzel', serif;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.4);
+            font-weight: 600;
+        }
+
+        .wonderland-symbol:nth-child(1) { 
+            top: 8%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            animation-delay: 0s; 
+        }
+        .wonderland-symbol:nth-child(2) { 
+            top: 25%; 
+            right: 15%; 
+            animation-delay: 0.5s; 
+        }
+        .wonderland-symbol:nth-child(3) { 
+            top: 50%; 
+            right: 8%; 
+            transform: translateY(-50%); 
+            animation-delay: 1s; 
+        }
+        .wonderland-symbol:nth-child(4) { 
+            bottom: 25%; 
+            right: 15%; 
+            animation-delay: 1.5s; 
+        }
+        .wonderland-symbol:nth-child(5) { 
+            bottom: 8%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            animation-delay: 2s; 
+        }
+        .wonderland-symbol:nth-child(6) { 
+            bottom: 25%; 
+            left: 15%; 
+            animation-delay: 2.5s; 
+        }
+        .wonderland-symbol:nth-child(7) { 
+            top: 50%; 
+            left: 8%; 
+            transform: translateY(-50%); 
+            animation-delay: 3s; 
+        }
+        .wonderland-symbol:nth-child(8) { 
+            top: 25%; 
+            left: 15%; 
+            animation-delay: 3.5s; 
+        }
+
+        /* 中央镜子 */
+        .center-mirror {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, 
+                rgba(255, 215, 0, 1) 0%, 
+                rgba(255, 215, 0, 0.8) 50%, 
+                rgba(255, 215, 0, 0.3) 100%);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 215, 0, 1);
+            animation: center-pulse 2s ease-in-out infinite;
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.8), 
+                inset 0 0 6px rgba(255, 255, 255, 0.6);
+        }
+
+        /* 功能按钮区域 */
+        .function-area {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            z-index: 15;
+            margin-top: 40px;
+        }
+
+        .function-btn {
+            width: 280px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(173, 216, 230, 0.2));
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            border-radius: 25px;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.4rem;
+            font-weight: 600;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 15px rgba(173, 216, 230, 0.7);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .function-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s;
+        }
+
+        .function-btn:hover {
+            transform: translateY(-8px) scale(1.05);
+            border-color: rgba(255, 182, 193, 1);
+            box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.25), rgba(173, 216, 230, 0.3));
+        }
+
+        .function-btn:hover::before {
+            left: 100%;
+        }
+
+        .function-btn:active {
+            transform: translateY(-4px) scale(1.02);
+        }
+
+        /* 登入按钮 */
+        .btn-login {
+            border-color: rgba(100, 255, 100, 0.7);
+        }
+
+        .btn-login:hover {
+            border-color: rgba(100, 255, 100, 1);
+            box-shadow: 0 15px 35px rgba(100, 255, 100, 0.4);
+            background: linear-gradient(135deg, rgba(100, 255, 100, 0.25), rgba(144, 238, 144, 0.2));
+        }
+
+        /* 载入按钮 */
+        .btn-load {
+            border-color: rgba(173, 216, 230, 0.7);
+        }
+
+        .btn-load:hover {
+            border-color: rgba(173, 216, 230, 1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+            background: linear-gradient(135deg, rgba(173, 216, 230, 0.25), rgba(135, 206, 235, 0.2));
+        }
+
+        /* 图鉴按钮 */
+        .btn-gallery {
+            border-color: rgba(255, 182, 193, 0.7);
+        }
+
+        .btn-gallery:hover {
+            border-color: rgba(255, 182, 193, 1);
+            box-shadow: 0 15px 35px rgba(255, 182, 193, 0.4);
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.25), rgba(255, 192, 203, 0.2));
+        }
+
+        /* 成就按钮 */
+        .btn-achievement {
+            border-color: rgba(255, 140, 0, 0.7);
+        }
+
+        .btn-achievement:hover {
+            border-color: rgba(255, 140, 0, 1);
+            box-shadow: 0 15px 35px rgba(255, 140, 0, 0.4);
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.25), rgba(255, 165, 0, 0.2));
+        }
+
+        /* 设置按钮 */
+        .btn-settings {
+            border-color: rgba(147, 112, 219, 0.7);
+        }
+
+        .btn-settings:hover {
+            border-color: rgba(147, 112, 219, 1);
+            box-shadow: 0 15px 35px rgba(147, 112, 219, 0.4);
+            background: linear-gradient(135deg, rgba(147, 112, 219, 0.25), rgba(138, 43, 226, 0.2));
+        }
+
+        /* 动画定义 */
+        @keyframes title-glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(173, 216, 230, 0.5); }
+            50% { text-shadow: 0 0 40px rgba(173, 216, 230, 0.8), 0 0 60px rgba(173, 216, 230, 0.6); }
+        }
+
+        @keyframes title-gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes subtitle-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes area-pulse {
+            0%, 100% { box-shadow: 0 0 40px rgba(173, 216, 230, 0.3); }
+            50% { box-shadow: 0 0 80px rgba(173, 216, 230, 0.5); }
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes rotate-reverse {
+            from { transform: translate(-50%, -50%) rotate(360deg); }
+            to { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
+        @keyframes clock-rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes symbol-glow {
+            0%, 100% { 
+                color: rgba(173, 216, 230, 0.7); 
+                text-shadow: 0 0 10px rgba(173, 216, 230, 0.4); 
+                transform: scale(1);
+            }
+            50% { 
+                color: rgba(255, 182, 193, 1); 
+                text-shadow: 0 0 20px rgba(255, 182, 193, 0.6); 
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes center-pulse {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1); 
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.6); 
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.2); 
+                box-shadow: 0 0 30px rgba(255, 215, 0, 1), inset 0 0 8px rgba(255, 255, 255, 0.8); 
+            }
+        }
+
+        /* 音频控制按钮 */
+        .audio-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .audio-toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-toggle-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+        }
+
+        .audio-toggle-btn.muted {
+            background: rgba(255, 100, 100, 0.3);
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        .audio-toggle-btn.muted:hover {
+            background: rgba(255, 100, 100, 0.4);
+            box-shadow: 0 15px 35px rgba(255, 100, 100, 0.4);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .game-title { font-size: 3.5rem; }
+            .game-subtitle { font-size: 1.5rem; }
+            .wonderland-clock { width: 160px; height: 160px; }
+            .function-area { gap: 25px; }
+            .function-btn { width: 250px; height: 70px; font-size: 1.3rem; }
+        }
+
+        @media (max-width: 768px) {
+            .game-title { font-size: 2.8rem; letter-spacing: 2px; }
+            .game-subtitle { font-size: 1.2rem; }
+            .wonderland-clock { width: 140px; height: 140px; bottom: 3%; right: 3%; }
+            .function-area { gap: 22px; margin-top: 30px; }
+            .function-btn { width: 220px; height: 65px; font-size: 1.2rem; }
+            .wonderland-symbol { font-size: 1rem; }
+        }
+
+        @media (max-width: 480px) {
+            .game-title { font-size: 2.2rem; }
+            .game-subtitle { font-size: 1rem; }
+            .function-area { gap: 20px; }
+            .function-btn { width: 200px; height: 60px; font-size: 1.1rem; }
+            .wonderland-clock { width: 120px; height: 120px; bottom: 2%; right: 2%; }
+            .wonderland-symbol { font-size: 0.9rem; }
+            .center-mirror { width: 10px; height: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 自定义光标 -->
+    <div class="custom-cursor" id="customCursor"></div>
+
+    <!-- 背景音乐 -->
+    <audio id="backgroundMusic" loop>
+        <source src="music/爱丽丝的梦境.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 音频控制按钮 -->
+    <div class="audio-button" id="audioButton">
+        <button class="audio-toggle-btn" id="audioToggle">🔊</button>
+    </div>
+
+    <!-- 背景粒子画布 -->
+    <canvas class="background-canvas" id="backgroundCanvas"></canvas>
+
+    <!-- 主游戏容器 -->
+    <div class="game-container">
+        <!-- 游戏标题区域 -->
+        <div class="title-section">
+            <h1 class="game-title" data-text="奇域梦幻漫游录">奇域梦幻漫游录</h1>
+            <p class="game-subtitle">— 跟随爱丽丝，坠入神秘的仙境世界 —</p>
+        </div>
+
+        <!-- 中央游戏区域 -->
+        <div class="game-main-area">
+            <!-- 仙境时钟 -->
+            <div class="wonderland-clock">
+                <div class="wonderland-symbol">♠</div>
+                <div class="wonderland-symbol">♥</div>
+                <div class="wonderland-symbol">♦</div>
+                <div class="wonderland-symbol">♣</div>
+                <div class="wonderland-symbol">♕</div>
+                <div class="wonderland-symbol">♔</div>
+                <div class="wonderland-symbol">🌹</div>
+                <div class="wonderland-symbol">🎩</div>
+            </div>
+            
+            <!-- 中央镜子 -->
+            <div class="center-mirror"></div>
+        </div>
+
+        <!-- 功能按钮区域 -->
+        <div class="function-area">
+            <button class="function-btn btn-login" onclick="handleLogin()">
+                🌟 登录
+            </button>
+            <button class="function-btn btn-load" onclick="handleLoad()">
+                📁 探索
+            </button>
+            <button class="function-btn btn-gallery" onclick="handleGallery()">
+                🃏 图鉴
+            </button>
+            <button class="function-btn btn-achievement" onclick="handleAchievement()">
+                🏆 成就
+            </button>
+            <button class="function-btn btn-settings" onclick="handleSettings()">
+                ⚙️ 设置
+            </button>
+        </div>
+    </div>
+
+    <!-- 右下角仙境时钟 -->
+    <div class="wonderland-clock">
+        <div class="wonderland-symbol">♠</div>
+        <div class="wonderland-symbol">♥</div>
+        <div class="wonderland-symbol">♦</div>
+        <div class="wonderland-symbol">♣</div>
+        <div class="wonderland-symbol">♕</div>
+        <div class="wonderland-symbol">♔</div>
+        <div class="wonderland-symbol">🌹</div>
+        <div class="wonderland-symbol">🎩</div>
+        
+        <!-- 中央镜子 -->
+        <div class="center-mirror"></div>
+    </div>
+
+    <script>
+        // 自定义光标
+        const cursor = document.getElementById('customCursor');
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX - 15 + 'px';
+            cursor.style.top = mouseY - 15 + 'px';
+        });
+
+        // 鼠标悬停效果
+        document.querySelectorAll('.function-btn').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                cursor.classList.add('hover');
+            });
+            
+            btn.addEventListener('mouseleave', () => {
+                cursor.classList.remove('hover');
+            });
+        });
+
+        // 动态添加设置面板按钮的悬停效果
+        document.addEventListener('mouseenter', (e) => {
+            if (e.target.matches('.setting-btn, .settings-close, .setting-slider')) {
+                cursor.classList.add('hover');
+            }
+        }, true);
+
+        document.addEventListener('mouseleave', (e) => {
+            if (e.target.matches('.setting-btn, .settings-close, .setting-slider')) {
+                cursor.classList.remove('hover');
+            }
+        }, true);
+
+        // 背景粒子系统
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = `rgba(${255}, ${215 + Math.random() * 40}, ${Math.random() * 100}, ${Math.random() * 0.5 + 0.2})`;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                if (this.life <= 0) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = this.maxLife;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                const alpha = this.life / this.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 添加发光效果
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 功能按钮事件处理
+        function handleLogin() {
+              // 检查是否已登录
+              const token = localStorage.getItem('token');
+              if (token) {
+                  const user = JSON.parse(localStorage.getItem('user') || '{}');
+                  showNotification(`✨ 欢迎回到仙境，${user.nickname || '神秘访客'}！`, 'success');
+                  return;
+              }
+              
+              // 跳转到登录页面
+              showNotification('🌟 正在前往登录页面...', 'info');
+              setTimeout(() => {
+                  window.location.href = '/login';
+              }, 400);
+          }
+
+        function handleLoad() {
+            // 检查是否已登录
+            const token = localStorage.getItem('token');
+
+            if (token) {
+                showNotification('📖 正在载入存档...', 'achievement');
+                setTimeout(() => {
+                    window.location.href = 'chapter/第一章节.html';
+                }, 400);
+            } else {
+                showNotification('请先进行登录！', 'error');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                },400);
+            }
+        }
+
+        async function handleGallery() {
+            showNotification('🃏 正在打开角色图鉴...', 'info');
+            // 解锁图鉴探索者成就
+            await unlockAchievement('alice_card_visitor');
+            setTimeout(() => {
+                window.location.href = 'alice_card/card.html';
+            }, 400);
+        }
+
+
+
+        function handleAchievement() {
+            // 检查是否已登录
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                showNotification('🏆 正在跳转到成就系统...', 'achievement');
+                setTimeout(() => {
+                    window.location.href = '/achievements';
+                }, 400);
+            } else {
+                showNotification('请先登录查看成就！', 'error');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 400);
+            }
+        }
+
+        function handleSettings() {
+            showNotification('⚙️ 打开游戏设置...', 'info');
+            // 显示设置面板
+            showSettingsPanel();
+        }
+
+        // 显示设置面板
+        function showSettingsPanel() {
+            // 移除现有设置面板
+            const existingPanel = document.querySelector('.settings-panel');
+            if (existingPanel) {
+                existingPanel.remove();
+            }
+
+            // 创建设置面板
+            const settingsPanel = document.createElement('div');
+            settingsPanel.className = 'settings-panel';
+            
+            settingsPanel.innerHTML = `
+                <div class="settings-overlay"></div>
+                <div class="settings-content">
+                    <div class="settings-header">
+                        <h2>⚙️ 游戏设置</h2>
+                        <button class="settings-close" onclick="closeSettingsPanel()">✕</button>
+                    </div>
+                    
+                    <div class="settings-sections">
+                        <div class="settings-section">
+                            <h3>🎵 音频设置</h3>
+                            <div class="setting-item">
+                                <label>背景音乐</label>
+                                <div class="setting-controls">
+                                    <button class="setting-btn" onclick="toggleAudioFromSettings()">
+                                        ${isAudioMuted || audio.paused ? '🔇 开启' : '🔊 关闭'}
+                                    </button>
+                                    <span class="setting-value">音量: ${Math.round(savedVolume * 100)}%</span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>音量调节</label>
+                                <input type="range" class="setting-slider" id="settingsVolumeSlider" 
+                                       min="0" max="100" value="${Math.round(savedVolume * 100)}">
+                            </div>
+                        </div>
+                        
+                        
+                        <div class="settings-section">
+                            <h3>💾 数据管理</h3>
+                            <div class="setting-item">
+                                <label>清除本地数据</label>
+                                <button class="setting-btn danger" onclick="clearLocalData()">
+                                    清除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加设置面板样式
+            addSettingsStyles();
+            
+            document.body.appendChild(settingsPanel);
+            
+            // 添加动画效果
+            setTimeout(() => {
+                settingsPanel.classList.add('show');
+            }, 10);
+
+            // 设置面板事件监听
+            settingsPanel.querySelector('.settings-overlay').addEventListener('click', closeSettingsPanel);
+            
+            // 设置面板音量滑块
+            const settingsVolumeSlider = document.getElementById('settingsVolumeSlider');
+            settingsVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                audio.volume = volume;
+                savedVolume = volume;
+                
+                // 更新主页音量显示（如果存在）
+                const volumeSlider = document.getElementById('volumeSlider');
+                const volumeValue = document.getElementById('volumeValue');
+                if (volumeSlider) volumeSlider.value = e.target.value;
+                if (volumeValue) volumeValue.textContent = e.target.value + '%';
+                
+                if (volume === 0) {
+                    isAudioMuted = true;
+                } else {
+                    isAudioMuted = false;
+                }
+                
+                updateAudioToggleButton();
+                saveAudioSettings();
+                
+                // 更新设置面板显示
+                const settingValue = settingsPanel.querySelector('.setting-value');
+                if (settingValue) {
+                    settingValue.textContent = `音量: ${e.target.value}%`;
+                }
+            });
+            
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closeSettingsPanel();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        // 关闭设置面板
+        function closeSettingsPanel() {
+            const panel = document.querySelector('.settings-panel');
+            if (panel) {
+                panel.classList.remove('show');
+                setTimeout(() => panel.remove(), 300);
+            }
+        }
+
+        // 从设置面板切换音频
+        function toggleAudioFromSettings() {
+            toggleAudio();
+            
+            // 更新设置面板按钮
+            const settingsPanel = document.querySelector('.settings-panel');
+            if (settingsPanel) {
+                const audioBtn = settingsPanel.querySelector('.setting-btn');
+                if (audioBtn) {
+                    audioBtn.textContent = isAudioMuted || audio.paused ? '🔇 开启' : '🔊 关闭';
+                }
+            }
+        }
+
+
+
+        // 清除本地数据
+        function clearLocalData() {
+            if (confirm('确定要清除所有本地数据吗？这将包括音频设置、成就进度等。')) {
+                localStorage.clear();
+                showNotification('🗑️ 本地数据已清除', 'info');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+
+        // 添加设置面板样式
+        function addSettingsStyles() {
+            if (document.querySelector('style[data-settings-styles]')) return;
+            
+            const style = document.createElement('style');
+            style.setAttribute('data-settings-styles', 'true');
+            style.textContent = `
+                .settings-panel {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.3s ease;
+                }
+
+                .settings-panel.show {
+                    opacity: 1;
+                    visibility: visible;
+                }
+
+                .settings-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    backdrop-filter: blur(10px);
+                }
+
+                .settings-content {
+                    position: relative;
+                    background: linear-gradient(135deg, rgba(26, 74, 92, 0.95), rgba(45, 90, 135, 0.95));
+                    border: 2px solid rgba(173, 216, 230, 0.3);
+                    border-radius: 20px;
+                    width: 90%;
+                    max-width: 600px;
+                    max-height: 80%;
+                    margin: 5% auto;
+                    padding: 30px;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+                    cursor: default !important;
+                }
+
+                .settings-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid rgba(173, 216, 230, 0.3);
+                }
+
+                .settings-header h2 {
+                    font-size: 2rem;
+                    font-weight: 700;
+                    background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+
+                .settings-close {
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    font-size: 1.5rem;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    cursor: pointer !important;
+                    transition: all 0.3s ease;
+                }
+
+                .settings-close:hover {
+                    background: rgba(255, 100, 100, 0.3);
+                    transform: scale(1.1);
+                }
+
+                .settings-sections {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 30px;
+                }
+
+                .settings-section h3 {
+                    font-size: 1.3rem;
+                    color: rgba(255, 255, 255, 0.9);
+                    margin-bottom: 20px;
+                    padding-bottom: 10px;
+                    border-bottom: 1px solid rgba(173, 216, 230, 0.3);
+                }
+
+                .setting-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 15px;
+                    padding: 15px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 10px;
+                    border: 1px solid rgba(173, 216, 230, 0.2);
+                }
+
+                .setting-item label {
+                    color: rgba(255, 255, 255, 0.9);
+                    font-weight: 600;
+                    font-size: 1rem;
+                }
+
+                .setting-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                }
+
+                .setting-value {
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 0.9rem;
+                    min-width: 80px;
+                    text-align: right;
+                }
+
+                .setting-btn {
+                    background: rgba(173, 216, 230, 0.2);
+                    border: 2px solid rgba(173, 216, 230, 0.4);
+                    color: rgba(255, 255, 255, 0.9);
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    cursor: pointer !important;
+                    transition: all 0.3s ease;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                }
+
+                .setting-btn:hover {
+                    background: rgba(173, 216, 230, 0.3);
+                    transform: translateY(-2px);
+                }
+
+                .setting-btn.danger {
+                    background: rgba(255, 100, 100, 0.2);
+                    border-color: rgba(255, 100, 100, 0.4);
+                }
+
+                .setting-btn.danger:hover {
+                    background: rgba(255, 100, 100, 0.3);
+                }
+
+                .setting-slider {
+                    width: 150px;
+                    height: 6px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 3px;
+                    outline: none;
+                    -webkit-appearance: none;
+                    appearance: none;
+                    cursor: pointer !important;
+                }
+
+                .setting-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 18px;
+                    height: 18px;
+                    background: linear-gradient(135deg, #87ceeb, #add8e6);
+                    border-radius: 50%;
+                    cursor: pointer !important;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                }
+
+                .setting-slider::-moz-range-thumb {
+                    width: 18px;
+                    height: 18px;
+                    background: linear-gradient(135deg, #87ceeb, #add8e6);
+                    border-radius: 50%;
+                    cursor: pointer !important;
+                    border: none;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                }
+
+                /* 响应式设计 */
+                @media (max-width: 768px) {
+                    .settings-content {
+                        width: 95%;
+                        margin: 2.5% auto;
+                        padding: 20px;
+                    }
+
+                    .settings-header h2 {
+                        font-size: 1.5rem;
+                    }
+
+                    .setting-item {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 10px;
+                    }
+
+                    .setting-controls {
+                        width: 100%;
+                        justify-content: space-between;
+                    }
+
+                    .setting-slider {
+                        width: 100%;
+                    }
+                }
+                
+                /* 设置面板光标修复 */
+                .settings-panel * {
+                    cursor: inherit !important;
+                }
+                
+                .settings-panel button,
+                .settings-panel input[type="range"],
+                .settings-panel .setting-btn,
+                .settings-panel .settings-close {
+                    cursor: pointer !important;
+                }
+                
+                .settings-panel .settings-overlay {
+                    cursor: default !important;
+                }
+                
+                .settings-panel label,
+                .settings-panel h2,
+                .settings-panel h3,
+                .settings-panel .setting-value {
+                    cursor: default !important;
+                }
+            `;
+            
+            document.head.appendChild(style);
+        }
+
+        // 通知系统
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0, 0, 0, 0.9);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                border: 2px solid ${type === 'success' ? '#64ff64' : type === 'achievement' ? '#ffb6c1' : '#add8e6'};
+                z-index: 10000;
+                font-family: 'Noto Serif SC', serif;
+                font-size: 1rem;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                animation: slideIn 0.5s ease-out;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.5s ease-in forwards';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        }
+
+        // 添加通知动画CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case '1':
+                    handleLogin();
+                    break;
+                case '2':
+                    handleLoad();
+                    break;
+                case '3':
+                    handleGallery();
+                    break;
+                case '4':
+                    handleAchievement();
+                    break;
+                case '5':
+                    handleSettings();
+                    break;
+                case 'Escape':
+                    showNotification('按 1-登入, 2-探索, 3-图鉴, 4-成就, 5-设置', 'info');
+                    break;
+            }
+        });
+
+        // 检查登录状态并更新UI
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const loginBtn = document.querySelector('.btn-login');
+            
+            if (token && loginBtn) {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                loginBtn.innerHTML = `${user.avatar || '👤'} ${user.nickname || '用户'}`;
+                loginBtn.onclick = () => {
+                    showUserMenu();
+                };
+            }
+        }
+
+        // 解锁成就
+        async function unlockAchievement(achievementId) {
+            const achievement = achievementsData.find(a => a.id === achievementId);
+            if (!achievement) {
+                console.warn(`未找到成就: ${achievementId}`);
+                return false;
+            }
+
+            if (achievement.unlocked) {
+                console.log(`成就 ${achievement.name} 已经解锁过了`);
+                return false;
+            }
+
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                // 如果已登录，发送到服务器
+                try {
+                    const response = await fetch('/api/achievements/unlock', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            achievementId: achievementId,
+                            achievementName: achievement.name,
+                            achievementDescription: achievement.description,
+                            unlockedAt: new Date().toISOString()
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.newlyUnlocked) {
+                            // 更新本地成就状态
+                            achievement.unlocked = true;
+                            achievement.unlockedAt = new Date().toLocaleDateString();
+                            
+                            // 显示成就解锁通知
+                            showNotification(`🏆 成就解锁: ${achievement.name}`, 'achievement');
+                            
+                            console.log(`🏆 成就解锁: ${achievement.name}`);
+                            return true;
+                        }
+                        return false;
+                    } else {
+                        throw new Error('服务器响应错误');
+                    }
+                } catch (error) {
+                    console.error('成就解锁失败:', error);
+                    // 服务器失败时，保存到本地作为备份
+                }
+            }
+
+            // 如果未登录或服务器失败，保存到本地
+            achievement.unlocked = true;
+            achievement.unlockedAt = new Date().toLocaleDateString();
+            
+            // 显示成就解锁通知
+            showNotification(`🏆 成就解锁: ${achievement.name}`, 'achievement');
+            
+            // 保存到localStorage作为备份
+            localStorage.setItem('achievements', JSON.stringify(achievementsData));
+            
+            return true;
+        }
+
+        // 初始化成就数据
+        async function initializeAchievements() {
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                // 如果已登录，从服务器获取成就数据
+                try {
+                    const response = await fetch('/api/achievements', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.achievements) {
+                            // 合并服务器成就数据
+                            result.achievements.forEach(serverAchievement => {
+                                const localAchievement = achievementsData.find(a => a.id === serverAchievement.name);
+                                if (localAchievement) {
+                                    localAchievement.unlocked = serverAchievement.unlocked;
+                                    localAchievement.unlockedAt = serverAchievement.unlocked_at ? 
+                                        new Date(serverAchievement.unlocked_at).toLocaleDateString() : 
+                                        localAchievement.unlockedAt;
+                                } else {
+                                    // 如果本地没有这个成就，添加到列表中
+                                    achievementsData.push({
+                                        id: serverAchievement.name,
+                                        name: serverAchievement.title,
+                                        description: serverAchievement.description,
+                                        icon: serverAchievement.icon || '🏆',
+                                        backgroundImage: getBackgroundByRarity(serverAchievement.rarity),
+                                        rarity: serverAchievement.rarity || 'common',
+                                        unlocked: serverAchievement.unlocked,
+                                        unlockedAt: serverAchievement.unlocked_at ? 
+                                            new Date(serverAchievement.unlocked_at).toLocaleDateString() : 
+                                            null
+                                    });
+                                }
+                            });
+                            
+                            console.log('成就数据已从服务器同步');
+                            return;
+                        }
+                    } else if (response.status === 401) {
+                        // token过期，清除本地token
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                    }
+                } catch (error) {
+                    console.error('获取服务器成就数据失败:', error);
+                }
+            }
+            
+            // 如果未登录或服务器获取失败，使用本地存储的成就数据
+            const savedAchievements = localStorage.getItem('achievements');
+            if (savedAchievements) {
+                try {
+                    const parsed = JSON.parse(savedAchievements);
+                    // 合并保存的成就状态
+                    parsed.forEach(saved => {
+                        const achievement = achievementsData.find(a => a.id === saved.id);
+                        if (achievement) {
+                            achievement.unlocked = saved.unlocked;
+                            achievement.unlockedAt = saved.unlockedAt;
+                        }
+                    });
+                } catch (error) {
+                    console.error('成就数据解析失败:', error);
+                }
+            }
+        }
+
+        // 根据稀有度获取背景渐变
+        function getBackgroundByRarity(rarity) {
+            const backgrounds = {
+                'common': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'uncommon': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'rare': 'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)',
+                'epic': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'legendary': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'
+            };
+            return backgrounds[rarity] || backgrounds['common'];
+        }
+
+        // 显示用户菜单
+        function showUserMenu() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            // 解锁菜单探索者成就
+            unlockAchievement('menu_explorer');
+            
+            // 创建用户菜单
+            const existingMenu = document.querySelector('.user-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+
+            const userMenu = document.createElement('div');
+            userMenu.className = 'user-menu';
+            userMenu.innerHTML = `
+                <div class="user-menu-content">
+                    <div class="user-info">
+                        <div class="user-avatar">${user.avatar || '👤'}</div>
+                        <div class="user-details">
+                            <div class="user-nickname">${user.nickname || '用户'}</div>
+                            <div class="user-username">@${user.username || ''}</div>
+                        </div>
+                    </div>
+                    <div class="menu-divider"></div>
+                    <button class="menu-item" onclick="switchAccount()">
+                        🔄 切换账号
+                    </button>
+                    <button class="menu-item logout" onclick="logout()">
+                        🚪 退出登录
+                    </button>
+                </div>
+            `;
+
+            // 添加样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .user-menu {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    animation: fadeInScale 0.3s ease-out;
+                }
+
+                .user-menu-content {
+                    background: rgba(255, 255, 255, 0.15);
+                    backdrop-filter: blur(20px);
+                    border: 2px solid rgba(173, 216, 230, 0.3);
+                    border-radius: 15px;
+                    padding: 20px;
+                    min-width: 200px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                }
+
+                .user-info {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 15px;
+                }
+
+                .user-avatar {
+                    font-size: 2rem;
+                    margin-right: 12px;
+                }
+
+                .user-details {
+                    flex: 1;
+                }
+
+                .user-nickname {
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    color: rgba(255, 255, 255, 0.95);
+                    margin-bottom: 2px;
+                }
+
+                .user-username {
+                    font-size: 0.85rem;
+                    color: rgba(255, 255, 255, 0.7);
+                }
+
+                .menu-divider {
+                    height: 1px;
+                    background: rgba(173, 216, 230, 0.3);
+                    margin: 15px 0;
+                }
+
+                .menu-item {
+                    width: 100%;
+                    padding: 10px 15px;
+                    border: none;
+                    background: transparent;
+                    color: rgba(255, 255, 255, 0.9);
+                    text-align: left;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-family: inherit;
+                    font-size: 0.95rem;
+                    margin-bottom: 5px;
+                    transition: all 0.3s ease;
+                }
+
+                .menu-item:hover {
+                    background: rgba(173, 216, 230, 0.2);
+                    transform: translateX(5px);
+                }
+
+                .menu-item.logout:hover {
+                    background: rgba(255, 100, 100, 0.2);
+                    color: #ffcccc;
+                }
+
+                @keyframes fadeInScale {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.8) translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1) translateY(0);
+                    }
+                }
+            `;
+            
+            if (!document.querySelector('style[data-user-menu]')) {
+                style.setAttribute('data-user-menu', 'true');
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(userMenu);
+
+            // 点击外部关闭菜单
+            setTimeout(() => {
+                document.addEventListener('click', function closeMenu(e) {
+                    if (!userMenu.contains(e.target) && !e.target.classList.contains('btn-login')) {
+                        userMenu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            }, 100);
+        }
+
+        // 切换账号
+        function switchAccount() {
+            showNotification('🔄 正在切换账号...', 'info');
+            logout(false); // 不显示退出消息
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 500);
+        }
+
+        // 退出登录
+        async function logout(showMessage = true) {
+            const token = localStorage.getItem('token');
+            
+            // 调用服务器端退出登录API
+            if (token) {
+                try {
+                    await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                } catch (error) {
+                    console.log('服务器端退出登录失败:', error);
+                    // 即使服务器端失败，也继续客户端清理
+                }
+            }
+            
+            // 清除本地存储
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            // 关闭用户菜单
+            const userMenu = document.querySelector('.user-menu');
+            if (userMenu) {
+                userMenu.remove();
+            }
+            
+            // 恢复登录按钮
+            const loginBtn = document.querySelector('.btn-login');
+            if (loginBtn) {
+                loginBtn.innerHTML = '🌟 登录';
+                loginBtn.onclick = handleLogin;
+            }
+            
+            if (showMessage) {
+                showNotification('👋 已退出登录，期待您的再次访问！', 'success');
+            }
+        }
+
+        // 成就系统数据
+        const achievementsData = [
+            {
+                id: 'first_login',
+                name: '初入仙境',
+                description: '首次登录奇幻梦游录',
+                icon: '🌟',
+                backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                rarity: 'common',
+                unlocked: true,
+                unlockedAt: '2024-01-01'
+            },
+            {
+                id: 'register_account',
+                name: '仙境居民',
+                description: '成功注册账号',
+                icon: '🏠',
+                backgroundImage: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                rarity: 'common',
+                unlocked: true,
+                unlockedAt: '2024-01-01'
+            },
+            {
+                id: 'first_visit',
+                name: '好奇的访客',
+                description: '第一次访问主页',
+                icon: '👀',
+                backgroundImage: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                rarity: 'common',
+                unlocked: true,
+                unlockedAt: '2024-01-01'
+            },
+            {
+                id: 'menu_explorer',
+                name: '菜单探索者',
+                description: '打开用户菜单',
+                icon: '🔍',
+                backgroundImage: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                rarity: 'common',
+                unlocked: false
+            },
+            {
+                id: 'alice_card_visitor',
+                name: '爱丽丝卡片',
+                description: '访问爱丽丝卡片页面',
+                icon: '🃏',
+                backgroundImage: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                rarity: 'uncommon',
+                unlocked: false
+            },
+            {
+                id: 'mirror_world',
+                name: '镜中世界',
+                description: '进入镜子世界',
+                icon: '🪞',
+                backgroundImage: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                rarity: 'uncommon',
+                unlocked: false
+            },
+            {
+                id: 'heart_awakening',
+                name: '心之初醒',
+                description: '爱丽丝第一次主动的自我认知与成长，学会打破困境，不再被动接受',
+                icon: '💖',
+                backgroundImage: 'linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%)',
+                rarity: 'rare',
+                unlocked: false
+            },
+            {
+                id: 'wonderland_understanding',
+                name: '仙境之悟',
+                description: '理解仙境深层的痛苦与悲哀，发现表象下的真实根源',
+                icon: '🧠',
+                backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                rarity: 'epic',
+                unlocked: false
+            },
+            {
+                id: 'game_master',
+                name: '游戏大师',
+                description: '尝试所有小游戏',
+                icon: '🎮',
+                backgroundImage: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+                rarity: 'rare',
+                unlocked: false
+            },
+            {
+                id: 'tea_party',
+                name: '疯帽子茶会',
+                description: '参加疯帽子的茶会',
+                icon: '🎩',
+                backgroundImage: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+                rarity: 'rare',
+                unlocked: false
+            },
+            {
+                id: 'cheshire_smile',
+                name: '柴郡猫的微笑',
+                description: '找到柴郡猫的秘密',
+                icon: '😸',
+                backgroundImage: 'linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%)',
+                rarity: 'epic',
+                unlocked: false
+            },
+            {
+                id: 'red_queen_defeat',
+                name: '红桃皇后的败北',
+                description: '在纸牌游戏中击败红桃皇后',
+                icon: '👑',
+                backgroundImage: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+                rarity: 'epic',
+                unlocked: false
+            },
+            {
+                id: 'wonderland_master',
+                name: '仙境主宰',
+                description: '解锁所有其他成就',
+                icon: '🌈',
+                backgroundImage: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                rarity: 'legendary',
+                unlocked: false
+            },
+            {
+                id: 'time_traveler',
+                name: '时间旅行者',
+                description: '连续七天访问仙境',
+                icon: '⏰',
+                backgroundImage: 'linear-gradient(135deg, #a8caba 0%, #5d4e75 100%)',
+                rarity: 'legendary',
+                unlocked: false
+            }
+        ];
+
+        // 显示成就模态框
+        function showAchievementModal() {
+            // 移除现有模态框
+            const existingModal = document.querySelector('.achievement-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.className = 'achievement-modal';
+            
+            // 统计成就数据
+            const totalAchievements = achievementsData.length;
+            const unlockedCount = achievementsData.filter(a => a.unlocked).length;
+            const progressPercent = Math.round((unlockedCount / totalAchievements) * 100);
+
+            modal.innerHTML = `
+                <div class="achievement-modal-overlay"></div>
+                <div class="achievement-modal-content">
+                    <div class="achievement-header">
+                        <div class="achievement-title">
+                            <h2>🏆 仙境成就系统</h2>
+                            <div class="achievement-progress">
+                                <div class="progress-info">
+                                    <span>进度: ${unlockedCount}/${totalAchievements} (${progressPercent}%)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="modal-close" onclick="closeAchievementModal()">✕</button>
+                    </div>
+                    
+                    <div class="achievement-filter">
+                        <button class="filter-btn active" onclick="filterAchievements('all')">全部</button>
+                        <button class="filter-btn" onclick="filterAchievements('unlocked')">已解锁</button>
+                        <button class="filter-btn" onclick="filterAchievements('locked')">未解锁</button>
+                        <button class="filter-btn" onclick="filterAchievements('rare')">稀有</button>
+                    </div>
+                    
+                    <div class="achievement-grid">
+                        ${generateAchievementCards()}
+                    </div>
+                </div>
+            `;
+
+            // 添加样式
+            addAchievementStyles();
+            
+            document.body.appendChild(modal);
+            
+            // 添加动画效果
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+
+            // 添加事件监听器
+            modal.querySelector('.achievement-modal-overlay').addEventListener('click', closeAchievementModal);
+            
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closeAchievementModal();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        // 生成成就卡片
+        function generateAchievementCards() {
+            return achievementsData.map(achievement => {
+                const rarityClass = `rarity-${achievement.rarity}`;
+                const unlockedClass = achievement.unlocked ? 'unlocked' : 'locked';
+                const unlockedDate = achievement.unlocked ? 
+                    `<div class="unlock-date">解锁于: ${achievement.unlockedAt}</div>` : 
+                    '<div class="unlock-hint">完成条件以解锁</div>';
+
+                return `
+                    <div class="achievement-card ${rarityClass} ${unlockedClass}" data-rarity="${achievement.rarity}" data-unlocked="${achievement.unlocked}">
+                        <div class="card-background" style="background: ${achievement.backgroundImage}"></div>
+                        <div class="card-overlay"></div>
+                        <div class="card-content">
+                            <div class="achievement-icon">${achievement.icon}</div>
+                            <div class="achievement-info">
+                                <h3 class="achievement-name">${achievement.name}</h3>
+                                <p class="achievement-desc">${achievement.description}</p>
+                                ${unlockedDate}
+                            </div>
+                            <div class="rarity-badge">${getRarityText(achievement.rarity)}</div>
+                            ${achievement.unlocked ? '<div class="unlock-check">✓</div>' : '<div class="lock-icon">🔒</div>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 获取稀有度文本
+        function getRarityText(rarity) {
+            const rarityMap = {
+                'common': '普通',
+                'uncommon': '优秀',
+                'rare': '稀有',
+                'epic': '史诗',
+                'legendary': '传说'
+            };
+            return rarityMap[rarity] || '普通';
+        }
+
+        // 过滤成就
+        function filterAchievements(filter) {
+            // 更新按钮状态
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 过滤卡片
+            const cards = document.querySelectorAll('.achievement-card');
+            cards.forEach(card => {
+                const isUnlocked = card.dataset.unlocked === 'true';
+                const rarity = card.dataset.rarity;
+                
+                let show = false;
+                
+                switch(filter) {
+                    case 'all':
+                        show = true;
+                        break;
+                    case 'unlocked':
+                        show = isUnlocked;
+                        break;
+                    case 'locked':
+                        show = !isUnlocked;
+                        break;
+                    case 'rare':
+                        show = ['rare', 'epic', 'legendary'].includes(rarity);
+                        break;
+                }
+                
+                if (show) {
+                    card.style.display = 'block';
+                    setTimeout(() => card.classList.add('show'), 10);
+                } else {
+                    card.classList.remove('show');
+                    setTimeout(() => card.style.display = 'none', 300);
+                }
+            });
+        }
+
+        // 关闭成就模态框
+        function closeAchievementModal() {
+            const modal = document.querySelector('.achievement-modal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.remove(), 300);
+            }
+        }
+
+        // 添加成就系统样式
+        function addAchievementStyles() {
+            if (document.querySelector('style[data-achievement-styles]')) return;
+            
+            const style = document.createElement('style');
+            style.setAttribute('data-achievement-styles', 'true');
+            style.textContent = `
+                .achievement-modal {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 10000;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: all 0.3s ease;
+                }
+
+                .achievement-modal.show {
+                    opacity: 1;
+                    visibility: visible;
+                }
+
+                .achievement-modal-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    backdrop-filter: blur(10px);
+                }
+
+                .achievement-modal-content {
+                    position: relative;
+                    background: linear-gradient(135deg, rgba(26, 74, 92, 0.95), rgba(45, 90, 135, 0.95));
+                    border: 2px solid rgba(173, 216, 230, 0.3);
+                    border-radius: 20px;
+                    width: 90%;
+                    max-width: 1200px;
+                    height: 80%;
+                    max-height: 800px;
+                    margin: 5% auto;
+                    padding: 30px;
+                    overflow: hidden;
+                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+                }
+
+                .achievement-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 25px;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid rgba(173, 216, 230, 0.3);
+                }
+
+                .achievement-title h2 {
+                    font-size: 2.5rem;
+                    font-weight: 700;
+                    background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin-bottom: 15px;
+                }
+
+                .achievement-progress {
+                    width: 400px;
+                }
+
+                .progress-info {
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 1.1rem;
+                    margin-bottom: 10px;
+                }
+
+                .progress-bar {
+                    width: 100%;
+                    height: 10px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 5px;
+                    overflow: hidden;
+                }
+
+                .progress-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #43e97b, #38f9d7);
+                    border-radius: 5px;
+                    transition: width 0.5s ease;
+                }
+
+                .modal-close {
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    font-size: 1.5rem;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+
+                .modal-close:hover {
+                    background: rgba(255, 100, 100, 0.3);
+                    transform: scale(1.1);
+                }
+
+                .achievement-filter {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 25px;
+                    flex-wrap: wrap;
+                }
+
+                .filter-btn {
+                    padding: 10px 20px;
+                    border: 2px solid rgba(173, 216, 230, 0.3);
+                    background: rgba(255, 255, 255, 0.1);
+                    color: rgba(255, 255, 255, 0.8);
+                    border-radius: 25px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-family: inherit;
+                    font-size: 0.9rem;
+                }
+
+                .filter-btn:hover,
+                .filter-btn.active {
+                    background: rgba(173, 216, 230, 0.3);
+                    color: white;
+                    transform: translateY(-2px);
+                }
+
+                .achievement-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                    gap: 20px;
+                    max-height: 450px;
+                    overflow-y: auto;
+                    padding-right: 10px;
+                }
+
+                .achievement-grid::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .achievement-grid::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                }
+
+                .achievement-grid::-webkit-scrollbar-thumb {
+                    background: rgba(173, 216, 230, 0.5);
+                    border-radius: 4px;
+                }
+
+                .achievement-card {
+                    position: relative;
+                    height: 140px;
+                    border-radius: 15px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    border: 2px solid transparent;
+                    opacity: 0;
+                    transform: translateY(20px);
+                    animation: cardSlideIn 0.5s ease forwards;
+                }
+
+                @keyframes cardSlideIn {
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .achievement-card:hover {
+                    transform: translateY(-5px) scale(1.02);
+                }
+
+                .achievement-card.unlocked:hover {
+                    box-shadow: 0 10px 30px rgba(173, 216, 230, 0.4);
+                }
+
+                .achievement-card.locked {
+                    filter: grayscale(80%) brightness(0.6);
+                }
+
+                .achievement-card.locked:hover {
+                    filter: grayscale(60%) brightness(0.8);
+                }
+
+                .card-background {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 1;
+                }
+
+                .card-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.1));
+                    z-index: 2;
+                }
+
+                .card-content {
+                    position: relative;
+                    padding: 20px;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    z-index: 3;
+                }
+
+                .achievement-icon {
+                    font-size: 3rem;
+                    margin-right: 15px;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                }
+
+                .achievement-info {
+                    flex: 1;
+                }
+
+                .achievement-name {
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    color: white;
+                    margin-bottom: 5px;
+                    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                }
+
+                .achievement-desc {
+                    font-size: 0.9rem;
+                    color: rgba(255, 255, 255, 0.9);
+                    margin-bottom: 8px;
+                    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+                }
+
+                .unlock-date,
+                .unlock-hint {
+                    font-size: 0.8rem;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-style: italic;
+                }
+
+                .rarity-badge {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    padding: 4px 8px;
+                    border-radius: 10px;
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    backdrop-filter: blur(10px);
+                }
+
+                .rarity-common .rarity-badge {
+                    background: rgba(108, 117, 125, 0.8);
+                    color: white;
+                }
+
+                .rarity-uncommon .rarity-badge {
+                    background: rgba(40, 167, 69, 0.8);
+                    color: white;
+                }
+
+                .rarity-rare .rarity-badge {
+                    background: rgba(0, 123, 255, 0.8);
+                    color: white;
+                }
+
+                .rarity-epic .rarity-badge {
+                    background: rgba(102, 16, 242, 0.8);
+                    color: white;
+                }
+
+                .rarity-legendary .rarity-badge {
+                    background: rgba(255, 193, 7, 0.8);
+                    color: black;
+                }
+
+                .unlock-check,
+                .lock-icon {
+                    position: absolute;
+                    bottom: 10px;
+                    right: 10px;
+                    font-size: 1.5rem;
+                    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+                }
+
+                .unlock-check {
+                    color: #28a745;
+                }
+
+                .lock-icon {
+                    color: rgba(255, 255, 255, 0.6);
+                }
+
+                /* 响应式设计 */
+                @media (max-width: 768px) {
+                    .achievement-modal-content {
+                        width: 95%;
+                        height: 90%;
+                        margin: 2.5% auto;
+                        padding: 20px;
+                    }
+
+                    .achievement-title h2 {
+                        font-size: 2rem;
+                    }
+
+                    .achievement-grid {
+                        grid-template-columns: 1fr;
+                        max-height: 400px;
+                    }
+
+                    .achievement-card {
+                        height: 120px;
+                    }
+
+                    .achievement-icon {
+                        font-size: 2.5rem;
+                    }
+
+                    .achievement-name {
+                        font-size: 1.1rem;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+        }
+
+        // 音频控制系统
+        const audio = document.getElementById('backgroundMusic');
+        const audioToggle = document.getElementById('audioToggle');
+
+        // 音频状态管理
+        let isAudioMuted = false;
+        let savedVolume = 0.5;
+
+        // 初始化音频设置
+        function initializeAudio() {
+            // 从localStorage加载音频设置
+            const savedAudioSettings = localStorage.getItem('audioSettings');
+            if (savedAudioSettings) {
+                const settings = JSON.parse(savedAudioSettings);
+                audio.volume = settings.volume || 0.5;
+                isAudioMuted = settings.muted || false;
+                savedVolume = settings.volume || 0.5;
+            } else {
+                audio.volume = 0.5;
+            }
+
+            // 更新音频按钮状态
+            updateAudioToggleButton();
+            
+            // 尝试自动播放（需要用户交互）
+            audio.addEventListener('canplaythrough', () => {
+                if (!isAudioMuted) {
+                    audio.play().catch(() => {
+                        // 自动播放失败，等待用户交互
+                        console.log('需要用户交互才能播放音频');
+                    });
+                }
+            });
+        }
+
+        // 更新音频开关按钮
+        function updateAudioToggleButton() {
+            if (isAudioMuted || audio.paused) {
+                audioToggle.textContent = '🔇';
+                audioToggle.classList.add('muted');
+            } else {
+                audioToggle.textContent = '🔊';
+                audioToggle.classList.remove('muted');
+            }
+        }
+
+        // 切换音频播放/暂停
+        function toggleAudio() {
+            if (isAudioMuted) {
+                // 取消静音
+                isAudioMuted = false;
+                audio.volume = savedVolume;
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else if (audio.paused) {
+                // 播放
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else {
+                // 暂停
+                audio.pause();
+            }
+            updateAudioToggleButton();
+            saveAudioSettings();
+        }
+
+        // 保存音频设置
+        function saveAudioSettings() {
+            const settings = {
+                volume: savedVolume,
+                muted: isAudioMuted
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+        }
+
+        // 音频控制事件监听
+        audioToggle.addEventListener('click', toggleAudio);
+
+        // 页面加载完成提示
+        window.addEventListener('load', async () => {
+            // 初始化音频系统
+            initializeAudio();
+            
+            // 初始化成就系统
+            await initializeAchievements();
+            
+            checkLoginStatus();
+            
+
+            
+            
+            setTimeout(() => {
+                const token = localStorage.getItem('token');
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (token) {
+                    showNotification(`🌙 欢迎回到仙境，${user.nickname || '神秘访客'}！`, 'success');
+                } else {
+                    showNotification('🌙 欢迎来到爱丽丝的仙境世界！', 'success');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

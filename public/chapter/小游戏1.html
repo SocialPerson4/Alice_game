@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小游戏1：心灵共鸣</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 背景音乐 -->
+    <audio id="bg-music" loop preload="auto" style="display: none;">
+        <source src="../music/第三幕/4.心灵共鸣游戏.mp3" type="audio/mpeg">
+    </audio>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2d1b69, #0f0c29, #24243e);
+            color: white;
+            cursor: none;
+        }
+
+        /* 自定义光标 */
+        .custom-cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            transition: all 0.1s ease;
+            backdrop-filter: blur(1px);
+        }
+
+        .custom-cursor.touching {
+            width: 30px;
+            height: 30px;
+            border-color: rgba(173, 216, 230, 1);
+            box-shadow: 0 0 20px rgba(173, 216, 230, 0.8);
+        }
+
+        /* 主游戏容器 */
+        .empathy-space {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.9) 70%);
+            overflow: hidden;
+        }
+
+        /* 漂浮粒子背景 */
+        .floating-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: empathy-float 8s ease-in-out infinite;
+        }
+
+        @keyframes empathy-float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.2; }
+            50% { transform: translateY(-30px) rotate(180deg); opacity: 0.6; }
+        }
+
+        /* 爱丽丝角色 */
+        .alice-character {
+            position: absolute;
+            bottom: 2%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 240px;
+            background: url('./img/爱丽丝.jpg') center/contain no-repeat;
+            z-index: 2;
+            filter: drop-shadow(0 0 25px rgba(173, 216, 230, 0.3));
+            animation: alice-empathy 6s ease-in-out infinite;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        @keyframes alice-empathy {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.02); filter: drop-shadow(0 0 40px rgba(173, 216, 230, 0.6)); }
+        }
+
+        /* 情感碎片 */
+        .emotion-fragment {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fragment-pulse 4s ease-in-out infinite;
+            user-select: none;
+        }
+
+        .emotion-fragment:hover {
+            transform: scale(1.2) rotate(5deg);
+            box-shadow: 0 0 40px rgba(173, 216, 230, 0.9);
+            border-color: rgba(173, 216, 230, 0.8);
+        }
+
+        .emotion-fragment.selected {
+            animation: fragment-selected 1s ease-in-out;
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(255, 255, 255, 1);
+        }
+
+        @keyframes fragment-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
+            50% { box-shadow: 0 0 35px rgba(173, 216, 230, 0.6); }
+        }
+
+        /* 错误干扰碎片样式 */
+        .distractor-fragment {
+            border: 2px solid rgba(150, 100, 150, 0.4);
+            filter: saturate(0.8) brightness(0.9);
+            animation: distractor-pulse 5s ease-in-out infinite;
+        }
+
+        .distractor-fragment:hover {
+            filter: saturate(1) brightness(1.1);
+            box-shadow: 0 6px 30px rgba(150, 100, 150, 0.4);
+            border-color: rgba(180, 120, 180, 0.6);
+        }
+
+        .distractor-fragment.selected {
+            box-shadow: 0 8px 40px rgba(180, 120, 180, 0.8);
+            border: 2px solid rgba(180, 120, 180, 1);
+            animation: distractor-selected 1s ease-in-out;
+        }
+
+        @keyframes distractor-pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(150, 100, 150, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(180, 120, 180, 0.4); }
+        }
+
+        @keyframes distractor-selected {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15) rotate(-3deg); }
+            100% { transform: scale(1.1); }
+        }
+
+        @keyframes fragment-selected {
+            0%, 100% { transform: scale(1.1); }
+            25% { transform: scale(1.3) rotate(10deg); }
+            75% { transform: scale(1.3) rotate(-10deg); }
+        }
+
+        /* 理解模式区域 */
+        .understanding-patterns {
+            position: absolute;
+            top: calc(15% + 30px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 700px;
+            display: flex;
+            justify-content: space-around;
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .pattern-slot {
+            width: 130px;
+            height: 170px;
+            border: 3px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+            position: relative;
+            margin: 0 8px;
+        }
+
+        .pattern-slot:hover {
+            border-color: rgba(173, 216, 230, 0.8);
+            background: rgba(173, 216, 230, 0.1);
+            box-shadow: 0 0 30px rgba(173, 216, 230, 0.4);
+        }
+
+        .pattern-slot.correct-match {
+            border-color: rgba(100, 255, 100, 0.9);
+            background: rgba(100, 255, 100, 0.2);
+            box-shadow: 0 0 40px rgba(100, 255, 100, 0.6);
+            animation: correct-glow 2s ease-in-out;
+        }
+
+        .pattern-slot.wrong-match {
+            border-color: rgba(255, 100, 100, 0.9);
+            background: rgba(255, 100, 100, 0.2);
+            animation: wrong-shake 0.6s ease-in-out;
+        }
+
+        @keyframes correct-glow {
+            0%, 100% { box-shadow: 0 0 40px rgba(100, 255, 100, 0.6); }
+            50% { box-shadow: 0 0 60px rgba(100, 255, 100, 1); }
+        }
+
+        @keyframes wrong-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .pattern-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .pattern-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .pattern-description {
+            font-size: 0.8rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.4;
+        }
+
+        /* 游戏标题 */
+        .game-title {
+            position: absolute;
+            top: 2%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px 40px;
+            border-radius: 20px;
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            z-index: 20;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: rgba(173, 216, 230, 1);
+            text-shadow: 0 0 15px rgba(173, 216, 230, 0.7);
+            text-align: center;
+            white-space: nowrap;
+            margin-bottom: 20px;
+        }
+
+        /* 区域分隔线 */
+        .section-divider {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(173, 216, 230, 0.3), transparent);
+            z-index: 5;
+        }
+
+        .divider-after-title {
+            top: 12%;
+        }
+
+        .divider-after-patterns {
+            top: calc(38% + 30px);
+        }
+
+        /* 响应式布局调整 */
+        @media (max-width: 1200px) {
+            .understanding-patterns {
+                width: 90%;
+                padding: 20px;
+            }
+            
+            .pattern-slot {
+                width: 115px;
+                height: 155px;
+                margin: 0 5px;
+            }
+            
+            .game-status, .lives-display {
+                min-width: 160px;
+                padding: 15px;
+            }
+            
+            .game-title {
+                font-size: 1.4rem;
+                padding: 15px 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .understanding-patterns {
+                top: calc(18% + 30px);
+                width: 95%;
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .pattern-slot {
+                width: 100px;
+                height: 130px;
+                margin: 5px;
+            }
+            
+            .game-status, .lives-display {
+                min-width: 140px;
+                padding: 12px;
+                top: 2%;
+                bottom: 2%;
+            }
+            
+            .game-title {
+                font-size: 1.1rem;
+                padding: 12px 25px;
+                top: 1%;
+            }
+            
+            .dialog-area {
+                top: calc(50% + 30px);
+                width: 90%;
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .understanding-patterns {
+                top: calc(22% + 30px);
+                padding: 10px;
+            }
+            
+            .pattern-slot {
+                width: 80px;
+                height: 110px;
+                margin: 3px;
+            }
+            
+            .game-title {
+                font-size: 1rem;
+                padding: 10px 20px;
+            }
+            
+            .dialog-area {
+                top: calc(55% + 30px);
+                padding: 15px;
+            }
+            
+            .pattern-title {
+                font-size: 0.9rem;
+            }
+            
+            .pattern-icon {
+                font-size: 2rem;
+            }
+            
+            .pattern-description {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* 游戏状态显示 */
+        .game-status {
+            position: absolute;
+            top: 3%;
+            right: 3%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 20px;
+            border: 2px solid rgba(173, 216, 230, 0.4);
+            z-index: 20;
+            min-width: 180px;
+            text-align: center;
+        }
+
+        .progress-text {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .score-display {
+            font-size: 1.2rem;
+            color: rgba(173, 216, 230, 0.9);
+            font-weight: bold;
+        }
+
+        .shuffle-button {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background: rgba(173, 216, 230, 0.2);
+            border: 2px solid rgba(173, 216, 230, 0.5);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .shuffle-button:hover {
+            background: rgba(173, 216, 230, 0.4);
+            border-color: rgba(173, 216, 230, 0.8);
+            box-shadow: 0 0 15px rgba(173, 216, 230, 0.5);
+        }
+
+        .shuffle-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 生命值显示 */
+        .lives-display {
+            position: absolute;
+            bottom: 3%;
+            right: 3%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 182, 193, 0.6);
+            z-index: 20;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .lives-text {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+        }
+
+        .hearts-container {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .heart {
+            font-size: 1.5rem;
+            transition: all 0.4s ease;
+            filter: drop-shadow(0 0 8px rgba(255, 182, 193, 0.6));
+        }
+
+        .heart.lost {
+            opacity: 0.3;
+            transform: scale(0.8);
+            filter: grayscale(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+            animation: heart-break 0.6s ease-out;
+        }
+
+                 @keyframes heart-break {
+             0% { transform: scale(1) rotate(0deg); }
+             25% { transform: scale(1.2) rotate(-10deg); }
+             50% { transform: scale(0.9) rotate(10deg); }
+             75% { transform: scale(1.1) rotate(-5deg); }
+             100% { transform: scale(0.8) rotate(0deg); }
+         }
+
+         /* 失败特效 */
+         .failure-effect {
+             position: absolute;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: radial-gradient(circle at center, rgba(255, 100, 100, 0.3) 0%, transparent 70%);
+             opacity: 0;
+             z-index: 30;
+             pointer-events: none;
+             animation: failure-wave 4s ease-out;
+         }
+
+         @keyframes failure-wave {
+             0% { opacity: 0; transform: scale(0.3); }
+             50% { opacity: 1; transform: scale(1.2); }
+             100% { opacity: 0; transform: scale(1); }
+         }
+
+        /* 对话和反馈区域 */
+        .dialog-area {
+            position: absolute;
+            top: calc(42% + 30px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(30px);
+            padding: 25px;
+            border-radius: 25px;
+            border: 2px solid rgba(173, 216, 230, 0.5);
+            z-index: 25;
+            opacity: 0;
+            transition: opacity 1s ease;
+            min-height: 100px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+        }
+
+        .dialog-area.show {
+            opacity: 1;
+        }
+
+        .dialog-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.95);
+            text-align: center;
+        }
+
+        .cheshire-cat {
+            font-weight: bold;
+            color: rgba(173, 216, 230, 1);
+        }
+
+        /* 成功完成效果 */
+        .completion-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(173, 216, 230, 0.4) 0%, transparent 70%);
+            opacity: 0;
+            z-index: 30;
+            pointer-events: none;
+            animation: completion-wave 4s ease-out;
+        }
+
+        @keyframes completion-wave {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        /* 仙境理解碎片效果 */
+        .understanding-fragment {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(45deg, rgba(173, 216, 230, 0.9), rgba(255, 182, 193, 0.9));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 1);
+            box-shadow: 0 0 60px rgba(173, 216, 230, 1);
+            z-index: 35;
+            opacity: 0;
+            animation: fragment-appear 3s ease-out;
+        }
+
+        @keyframes fragment-appear {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(180deg); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(360deg); }
+        }
+
+        /* 标题 */
+        .game-title {
+            position: absolute;
+            top: 3%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 0 30px rgba(173, 216, 230, 0.8);
+            z-index: 20;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- 自定义光标 -->
+    <div class="custom-cursor" id="custom-cursor"></div>
+
+    <div class="empathy-space">
+        <!-- 漂浮粒子背景 -->
+        <div class="floating-particles" id="particles"></div>
+        
+        <!-- 游戏标题 -->
+        <div class="game-title">小游戏1：心灵共鸣</div>
+        
+        <!-- 标题后分隔线 -->
+        <div class="section-divider divider-after-title"></div>
+        
+        <!-- 游戏状态 -->
+        <div class="game-status">
+            <div class="progress-text">心灵理解进度</div>
+            <div class="score-display"><span id="matched-count">0</span>/4</div>
+            <button class="shuffle-button" id="shuffle-btn" onclick="shuffleFragments()">
+                🔄 重新散布
+            </button>
+        </div>
+        
+        <!-- 生命值显示 -->
+        <div class="lives-display" id="lives-display">
+            <div class="lives-text">共情之心</div>
+            <div class="hearts-container" id="hearts-container">
+                <span class="heart">💖</span>
+                <span class="heart">💖</span>
+                <span class="heart">💖</span>
+            </div>
+        </div>
+        
+        <!-- 理解模式区域 -->
+        <div class="understanding-patterns" id="patterns-area">
+            <div class="pattern-slot" data-pattern="sadness">
+                <div class="pattern-title">深藏的悲伤</div>
+                <div class="pattern-icon">💧</div>
+                <div class="pattern-description">失去与眷恋<br>的痛苦回忆</div>
+            </div>
+            <div class="pattern-slot" data-pattern="fear">
+                <div class="pattern-title">隐匿的恐惧</div>
+                <div class="pattern-icon">🌑</div>
+                <div class="pattern-description">对未知与<br>失控的畏惧</div>
+            </div>
+            <div class="pattern-slot" data-pattern="loneliness">
+                <div class="pattern-title">无声的孤独</div>
+                <div class="pattern-icon">🌙</div>
+                <div class="pattern-description">被误解与<br>隔离的痛楚</div>
+            </div>
+            <div class="pattern-slot" data-pattern="emptiness">
+                <div class="pattern-title">虚无的空洞</div>
+                <div class="pattern-icon">⭕</div>
+                <div class="pattern-description">意义缺失与<br>存在的迷茫</div>
+            </div>
+        </div>
+        
+        <!-- 模式区域后分隔线 -->
+        <div class="section-divider divider-after-patterns"></div>
+        
+        <!-- 爱丽丝角色 -->
+        <div class="alice-character"></div>
+        
+        <!-- 情感碎片（将通过JavaScript动态生成） -->
+        
+        <!-- 对话区域 -->
+        <div class="dialog-area" id="dialog-area">
+            <div class="dialog-text" id="dialog-text"></div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            matchedCount: 0,
+            totalMatches: 4,
+            isCompleted: false,
+            selectedFragment: null,
+            currentDialog: 0,
+            fragments: [],
+            lives: 3,
+            maxLives: 3,
+            wrongMatches: 0,
+            isFailed: false
+        };
+
+        // 音频管理
+        const bgMusic = document.getElementById('bg-music');
+        
+        function initAudio() {
+            bgMusic.volume = 0.4; // 设置较低的音量
+            // 尝试播放背景音乐
+            bgMusic.play().catch(e => {
+                console.log('音频需要用户交互才能播放:', e);
+                // 添加点击事件监听器，在用户首次交互时播放音乐
+                document.addEventListener('click', function playOnInteraction() {
+                    bgMusic.play().catch(e => console.log('音频播放失败:', e));
+                    document.removeEventListener('click', playOnInteraction);
+                }, { once: true });
+            });
+        }
+
+        // 情感碎片数据
+        const emotionFragments = [
+            {
+                id: 'mad-hatter-laughter',
+                emotion: '😂',
+                character: '疯帽子',
+                surface: '混乱的笑声',
+                truth: '深藏的悲伤',
+                pattern: 'sadness',
+                story: '疯帽子的笑声背后，是对永远停在茶会时刻的悲伤...'
+            },
+            {
+                id: 'queen-rage',
+                emotion: '👑',
+                character: '红心皇后',
+                surface: '暴怒的命令',
+                truth: '隐匿的恐惧',
+                pattern: 'fear',
+                story: '皇后的愤怒掩盖着对失去权力和控制的深层恐惧...'
+            },
+            {
+                id: 'cheshire-grin',
+                emotion: '😸',
+                character: '柴郡猫',
+                surface: '神秘的微笑',
+                truth: '无声的孤独',
+                pattern: 'loneliness',
+                story: '柴郡猫的笑容是对深深孤独的掩饰和自我保护...'
+            },
+            {
+                id: 'white-rabbit-rush',
+                emotion: '🐰',
+                character: '白兔',
+                surface: '急匆匆的奔跑',
+                truth: '虚无的空洞',
+                pattern: 'emptiness',
+                story: '白兔的忙碌是为了填补内心巨大的空虚和无意义感...'
+            }
+        ];
+
+        // 错误干扰碎片（不对应任何理解模式）
+        const distractorFragments = [
+            {
+                id: 'false-joy',
+                emotion: '🎭',
+                character: '幻影舞者',
+                surface: '虚假的欢愉',
+                truth: '这只是表象的迷惑',
+                pattern: 'none',
+                story: '这个碎片散发着迷人的光芒，但其中并无真实的情感共鸣...'
+            },
+            {
+                id: 'false-wisdom',
+                emotion: '🔮',
+                character: '谜语石像',
+                surface: '伪装的智慧',
+                truth: '空洞的哲学思辨',
+                pattern: 'none',
+                story: '这个碎片充满了看似聪明的话语，但缺乏真正的洞察力...'
+            },
+            {
+                id: 'false-chaos',
+                emotion: '🌀',
+                character: '变色龙影',
+                surface: '混乱的色彩',
+                truth: '缺乏一致性的伪装',
+                pattern: 'none',
+                story: '这个碎片像变色龙一样变化，但变化本身并不代表真实的情感...'
+            },
+            {
+                id: 'false-echo',
+                emotion: '👻',
+                character: '回声幽灵',
+                surface: '空虚的呐喊',
+                truth: '纯粹的噪音',
+                pattern: 'none',
+                story: '这些声音听起来充满情感，但实际上只是虚无的回响...'
+            },
+            {
+                id: 'false-warmth',
+                emotion: '✨',
+                character: '镜像天使',
+                surface: '虚幻的温暖',
+                truth: '没有真实情感支撑',
+                pattern: 'none',
+                story: '这种温暖是虚假的，就像镜中花、水中月一般不真实...'
+            }
+        ];
+
+        // 对话内容
+        const dialogSequence = [
+            "爱丽丝轻柔地伸出手，触碰着漂浮的情感碎片...",
+            "每一个碎片都闪烁着不同的光芒，诉说着隐藏的真相...",
+            "试着理解这些'疯狂'背后的真实情绪，将它们与正确的理解模式匹配...",
+            "当所有碎片找到归属，你将获得更深层的仙境理解..."
+        ];
+
+        // 完成对话
+        const completionDialogs = [
+            "<span class='cheshire-cat'>柴郡猫：</span>\"你看到了，小爱丽丝。疯狂并非没有根源。\"",
+            "<span class='cheshire-cat'>柴郡猫：</span>\"每一个看似荒诞的行为，都源于内心深处的痛苦。\"",
+            "<span class='cheshire-cat'>柴郡猫：</span>\"你获得了<strong>【仙境理解碎片二】</strong>。\"",
+            "爱丽丝感受到了对仙境更深层次的共情和理解..."
+        ];
+
+        // DOM 元素
+        const particles = document.getElementById('particles');
+        const dialogArea = document.getElementById('dialog-area');
+        const dialogText = document.getElementById('dialog-text');
+        const matchedCount = document.getElementById('matched-count');
+        const patternsArea = document.getElementById('patterns-area');
+        const customCursor = document.getElementById('custom-cursor');
+
+        // 自定义光标跟随
+        document.addEventListener('mousemove', (e) => {
+            customCursor.style.left = e.clientX - 10 + 'px';
+            customCursor.style.top = e.clientY - 10 + 'px';
+        });
+
+        // 初始化粒子背景
+        function initParticles() {
+            for (let i = 0; i < 60; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = (Math.random() * 8 + 3) + 'px';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (Math.random() * 6 + 6) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        // 生成随机位置（避免重合）
+        function generateRandomPositions() {
+            const positions = [];
+            const fragmentSize = 100; // 碎片大小
+            const minDistance = 130; // 最小间距
+            const maxAttempts = 100; // 最大尝试次数
+            
+            // 动态计算可用区域
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // 定义可用区域（碎片放在情感理解模式下方）
+            const safeZones = {
+                minX: 80,
+                maxX: Math.max(viewportWidth - fragmentSize - 80, 300),
+                minY: Math.max(viewportHeight * 0.55 + 30, 410), // 情感理解模式下方（考虑30px下移）
+                maxY: Math.min(viewportHeight - 120, viewportHeight * 0.88) // 底部留空间
+            };
+            
+            // 确保安全区域有效
+            if (safeZones.maxX <= safeZones.minX || safeZones.maxY <= safeZones.minY) {
+                // 使用备用布局
+                return generateFallbackPositions();
+            }
+            
+            // 合并真实碎片和错误碎片
+            const allFragments = [...emotionFragments, ...distractorFragments];
+            
+            for (let i = 0; i < allFragments.length; i++) {
+                let position;
+                let attempts = 0;
+                let validPosition = false;
+                
+                while (!validPosition && attempts < maxAttempts) {
+                    position = {
+                        x: Math.random() * (safeZones.maxX - safeZones.minX) + safeZones.minX,
+                        y: Math.random() * (safeZones.maxY - safeZones.minY) + safeZones.minY
+                    };
+                    
+                    // 检查是否与已有位置重合
+                    validPosition = true;
+                    for (let j = 0; j < positions.length; j++) {
+                        const distance = Math.sqrt(
+                            Math.pow(position.x - positions[j].x, 2) + 
+                            Math.pow(position.y - positions[j].y, 2)
+                        );
+                        
+                        if (distance < minDistance) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    
+                    attempts++;
+                }
+                
+                // 如果找不到合适位置，使用网格布局
+                if (!validPosition) {
+                    position = generateGridPosition(i, safeZones);
+                }
+                
+                positions.push(position);
+            }
+            
+            return positions;
+        }
+
+        // 生成网格位置（备用方案）
+        function generateGridPosition(index, safeZones) {
+            const allFragments = [...emotionFragments, ...distractorFragments];
+            const cols = 3;
+            const rows = Math.ceil(allFragments.length / cols);
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            
+            const cellWidth = (safeZones.maxX - safeZones.minX) / cols;
+            const cellHeight = (safeZones.maxY - safeZones.minY) / rows;
+            
+            return {
+                x: safeZones.minX + col * cellWidth + cellWidth * 0.3 + Math.random() * cellWidth * 0.4,
+                y: safeZones.minY + row * cellHeight + cellHeight * 0.3 + Math.random() * cellHeight * 0.4
+            };
+        }
+
+        // 备用位置生成（用于极小屏幕）
+        function generateFallbackPositions() {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const allFragments = [...emotionFragments, ...distractorFragments];
+            const positions = [];
+            
+            // 生成网格布局来容纳所有碎片
+            const cols = 3;
+            const rows = Math.ceil(allFragments.length / cols);
+            
+            for (let i = 0; i < allFragments.length; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                
+                const x = Math.max(100, viewportWidth * 0.15 + col * (viewportWidth * 0.22));
+                const y = Math.max(viewportHeight * 0.57 + 30, 430 + row * 90);
+                
+                positions.push({ x, y });
+            }
+            
+            return positions;
+        }
+
+        // 创建情感碎片
+        function createEmotionFragments() {
+            const positions = generateRandomPositions();
+            const allFragments = [...emotionFragments, ...distractorFragments];
+            
+            allFragments.forEach((fragmentData, index) => {
+                const fragment = document.createElement('div');
+                fragment.className = 'emotion-fragment';
+                fragment.dataset.id = fragmentData.id;
+                fragment.dataset.pattern = fragmentData.pattern;
+                
+                // 为错误碎片添加特殊样式标识
+                if (fragmentData.pattern === 'none') {
+                    fragment.classList.add('distractor-fragment');
+                }
+                
+                // 使用随机生成的位置
+                fragment.style.left = positions[index].x + 'px';
+                fragment.style.top = positions[index].y + 'px';
+                
+                // 为错误碎片使用不同的配色方案
+                if (fragmentData.pattern === 'none') {
+                    fragment.style.background = `linear-gradient(135deg, 
+                        hsl(${index * 45 + 180}, 40%, 45%), 
+                        hsl(${index * 45 + 220}, 50%, 55%))`;
+                } else {
+                    fragment.style.background = `linear-gradient(135deg, 
+                        hsl(${index * 90}, 60%, 60%), 
+                        hsl(${index * 90 + 60}, 70%, 70%))`;
+                }
+                
+                fragment.innerHTML = `
+                    <div style="font-size: 2.5rem; margin-bottom: 5px;">${fragmentData.emotion}</div>
+                    <div style="font-size: 0.7rem; text-align: center; opacity: 0.8;">${fragmentData.character}</div>
+                `;
+                
+                // 添加触摸效果
+                fragment.addEventListener('mouseenter', () => {
+                    customCursor.classList.add('touching');
+                });
+                
+                fragment.addEventListener('mouseleave', () => {
+                    customCursor.classList.remove('touching');
+                });
+                
+                // 添加点击事件
+                fragment.addEventListener('click', () => selectFragment(fragment, fragmentData));
+                
+                gameState.fragments.push({
+                    element: fragment,
+                    data: fragmentData,
+                    matched: false
+                });
+                
+                document.querySelector('.empathy-space').appendChild(fragment);
+            });
+        }
+
+        // 选择情感碎片
+        function selectFragment(fragmentElement, fragmentData) {
+            if (gameState.selectedFragment) {
+                gameState.selectedFragment.classList.remove('selected');
+            }
+            
+            gameState.selectedFragment = fragmentElement;
+            fragmentElement.classList.add('selected');
+            
+            showFragmentStory(fragmentData);
+        }
+
+        // 显示碎片故事
+        function showFragmentStory(fragmentData) {
+            dialogText.innerHTML = `
+                <div style="margin-bottom: 15px; color: rgba(173, 216, 230, 0.9); font-size: 1.2rem;">
+                    ${fragmentData.character} - ${fragmentData.surface}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    ${fragmentData.story}
+                </div>
+                <div style="font-size: 0.9rem; opacity: 0.8; font-style: italic;">
+                    点击正确的理解模式来匹配这个情感碎片...
+                </div>
+            `;
+            dialogArea.classList.add('show');
+        }
+
+        // 初始化模式匹配
+        function initPatternMatching() {
+            const patternSlots = document.querySelectorAll('.pattern-slot');
+            
+            patternSlots.forEach(slot => {
+                slot.addEventListener('click', () => {
+                    if (gameState.selectedFragment) {
+                        tryMatch(slot);
+                    }
+                });
+                
+                slot.addEventListener('mouseenter', () => {
+                    customCursor.classList.add('touching');
+                });
+                
+                slot.addEventListener('mouseleave', () => {
+                    customCursor.classList.remove('touching');
+                });
+            });
+        }
+
+        // 尝试匹配
+        function tryMatch(slot) {
+            if (gameState.isFailed || gameState.isCompleted) return;
+            
+            const selectedPatternType = slot.dataset.pattern;
+            const fragmentPatternType = gameState.selectedFragment.dataset.pattern;
+            
+            // 检查是否为错误碎片
+            if (fragmentPatternType === 'none') {
+                // 错误碎片永远不能正确匹配
+                wrongMatch(slot);
+                showDistractorDialog();
+                return;
+            }
+            
+            if (selectedPatternType === fragmentPatternType) {
+                // 正确匹配
+                correctMatch(slot);
+            } else {
+                // 错误匹配
+                wrongMatch(slot);
+            }
+        }
+
+        // 正确匹配
+        function correctMatch(slot) {
+            slot.classList.add('correct-match');
+            
+            // 移动碎片到槽位
+            const fragmentElement = gameState.selectedFragment;
+            const slotRect = slot.getBoundingClientRect();
+            const fragmentRect = fragmentElement.getBoundingClientRect();
+            
+            const deltaX = slotRect.left + slotRect.width/2 - fragmentRect.left - fragmentRect.width/2;
+            const deltaY = slotRect.top + slotRect.height/2 - fragmentRect.top - fragmentRect.height/2;
+            
+            fragmentElement.style.transition = 'transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            fragmentElement.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.6)`;
+            fragmentElement.style.opacity = '0.8';
+            
+            // 更新游戏状态
+            const fragmentData = gameState.fragments.find(f => f.element === fragmentElement);
+            fragmentData.matched = true;
+            
+            gameState.matchedCount++;
+            matchedCount.textContent = gameState.matchedCount;
+            
+            // 禁用已匹配的碎片
+            fragmentElement.style.pointerEvents = 'none';
+            
+            gameState.selectedFragment = null;
+            
+            // 检查是否完成
+            if (gameState.matchedCount >= gameState.totalMatches) {
+                setTimeout(() => completeGame(), 1500);
+            } else {
+                setTimeout(() => {
+                    showEncouragement();
+                }, 1000);
+            }
+        }
+
+        // 错误匹配
+        function wrongMatch(slot) {
+            slot.classList.add('wrong-match');
+            setTimeout(() => {
+                slot.classList.remove('wrong-match');
+            }, 600);
+            
+            // 减少生命值
+            loseLife();
+            
+            showWrongMatchDialog();
+        }
+
+        // 失去生命
+        function loseLife() {
+            if (gameState.lives > 0) {
+                gameState.lives--;
+                gameState.wrongMatches++;
+                
+                // 更新心形显示
+                const hearts = document.querySelectorAll('.heart');
+                if (hearts[gameState.lives]) {
+                    hearts[gameState.lives].classList.add('lost');
+                }
+                
+                // 检查是否失败
+                if (gameState.lives <= 0) {
+                    gameState.isFailed = true;
+                    setTimeout(() => gameOver(), 1500);
+                }
+            }
+        }
+
+        // 游戏结束
+        function gameOver() {
+            gameState.isFailed = true;
+            
+            // 创建失败特效
+            const failureEffect = document.createElement('div');
+            failureEffect.className = 'failure-effect';
+            document.querySelector('.empathy-space').appendChild(failureEffect);
+            
+            // 改变背景色调为更加暗淡
+            document.body.style.background = 'linear-gradient(135deg, #1a1a2e, #16213e, #0f1419)';
+            
+            // 禁用所有交互
+            document.querySelectorAll('.emotion-fragment').forEach(fragment => {
+                fragment.style.pointerEvents = 'none';
+                fragment.style.opacity = '0.3';
+            });
+            
+            document.querySelectorAll('.pattern-slot').forEach(slot => {
+                slot.style.pointerEvents = 'none';
+                slot.style.opacity = '0.5';
+            });
+            
+            // 禁用重新散布按钮
+            const shuffleBtn = document.getElementById('shuffle-btn');
+            shuffleBtn.disabled = true;
+            shuffleBtn.textContent = '💔 失败';
+            
+            // 显示失败对话
+            setTimeout(() => {
+                showFailureDialog();
+            }, 2000);
+            
+            // 移除失败特效
+            setTimeout(() => {
+                if (failureEffect.parentNode) {
+                    failureEffect.remove();
+                }
+            }, 4000);
+        }
+
+        // 显示错误碎片特殊对话
+        function showDistractorDialog() {
+            const distractorMessages = [
+                {
+                    title: "虚假的幻象...",
+                    message: "这个碎片只是表面的迷惑，没有真实的情感内核。不要被华丽的外表所欺骗..."
+                },
+                {
+                    title: "空洞的回声...",
+                    message: "这些看似深刻的表达实际上是空虚的。真正的情感有其独特的共鸣..."
+                },
+                {
+                    title: "伪装的智慧...",
+                    message: "这个碎片模仿着真实的痛苦，但缺乏真正的情感深度。仔细辨别真伪..."
+                },
+                {
+                    title: "镜花水月...",
+                    message: "这种情感是虚幻的投影，无法与任何理解模式产生真正的共鸣..."
+                }
+            ];
+            
+            const randomMessage = distractorMessages[Math.floor(Math.random() * distractorMessages.length)];
+            
+            dialogText.innerHTML = `
+                <div style="color: rgba(180, 120, 180, 0.9); margin-bottom: 10px; font-size: 1.1rem;">
+                    🎭 ${randomMessage.title}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    ${randomMessage.message}
+                </div>
+                <div style="font-size: 0.9rem; color: rgba(200, 150, 200, 0.8);">
+                    这个碎片无法匹配任何理解模式...
+                </div>
+                <div style="font-size: 0.9rem; color: rgba(255, 200, 200, 0.8); margin-top: 8px;">
+                    剩余共情之心: ${gameState.lives} 💖
+                </div>
+            `;
+            dialogArea.classList.add('show');
+        }
+
+        // 显示错误提示
+        function showWrongMatchDialog() {
+            const wrongMessages = [
+                {
+                    title: "理解偏差...",
+                    message: "这个角色的痛苦更深层，仔细感受他们的内心世界..."
+                },
+                {
+                    title: "共情失误...",
+                    message: "表象与真相往往相反，试着从另一个角度理解..."
+                },
+                {
+                    title: "情感误读...",
+                    message: "每个'疯狂'背后都有其根源，重新审视这个匹配..."
+                },
+                {
+                    title: "心灵距离...",
+                    message: "你与这个角色的内心还有距离，继续努力靠近真相..."
+                }
+            ];
+            
+            const randomMessage = wrongMessages[Math.floor(Math.random() * wrongMessages.length)];
+            
+            dialogText.innerHTML = `
+                <div style="color: rgba(255, 150, 150, 0.9); margin-bottom: 10px; font-size: 1.1rem;">
+                    💔 ${randomMessage.title}
+                </div>
+                <div style="margin-bottom: 10px;">
+                    ${randomMessage.message}
+                </div>
+                <div style="font-size: 0.9rem; color: rgba(255, 200, 200, 0.8);">
+                    剩余共情之心: ${gameState.lives} 💖
+                </div>
+            `;
+            dialogArea.classList.add('show');
+        }
+
+        // 显示鼓励信息
+        function showEncouragement() {
+            const encouragements = [
+                "很好！你理解了这个角色的内心痛苦...",
+                "继续探索，还有更多情感等待你的理解...",
+                "你的共情能力正在增强，爱丽丝感到欣慰...",
+                "每一次理解都让仙境变得更加真实..."
+            ];
+            
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            
+            dialogText.innerHTML = `
+                <div style="color: rgba(100, 255, 100, 0.9); margin-bottom: 10px;">
+                    匹配成功！
+                </div>
+                <div>
+                    ${randomEncouragement}
+                </div>
+            `;
+        }
+
+        // 完成游戏
+        function completeGame() {
+            gameState.isCompleted = true;
+            
+            // 音乐淡出效果
+            if (bgMusic && !bgMusic.paused) {
+                const fadeOutInterval = setInterval(() => {
+                    if (bgMusic.volume > 0.05) {
+                        bgMusic.volume -= 0.05;
+                    } else {
+                        bgMusic.volume = 0.1; // 保持低音量而不完全静音
+                        clearInterval(fadeOutInterval);
+                    }
+                }, 150);
+            }
+            
+            // 创建完成特效
+            const completionEffect = document.createElement('div');
+            completionEffect.className = 'completion-effect';
+            document.querySelector('.empathy-space').appendChild(completionEffect);
+            
+            // 柴郡猫的笑容变得柔和（通过改变背景色调）
+            document.body.style.background = 'linear-gradient(135deg, #2d1b69, #4a4a6a, #6b5b95)';
+            
+            // 显示理解碎片
+            setTimeout(() => {
+                const understandingFragment = document.createElement('div');
+                understandingFragment.className = 'understanding-fragment';
+                understandingFragment.innerHTML = '💎';
+                document.querySelector('.empathy-space').appendChild(understandingFragment);
+                
+                setTimeout(() => {
+                    understandingFragment.remove();
+                    showCompletionDialog();
+                }, 3000);
+            }, 2000);
+            
+            // 移除完成特效
+            setTimeout(() => {
+                completionEffect.remove();
+            }, 4000);
+        }
+
+        // 显示完成对话
+        function showCompletionDialog() {
+            let dialogIndex = 0;
+            
+            function showNextDialog() {
+                if (dialogIndex < completionDialogs.length) {
+                    dialogText.innerHTML = completionDialogs[dialogIndex];
+                    dialogIndex++;
+                    
+                    if (dialogIndex < completionDialogs.length) {
+                        setTimeout(showNextDialog, 3000);
+                    } else {
+                        // 最后一个对话显示后，添加返回按钮
+                        setTimeout(() => {
+                            showReturnButton();
+                        }, 3000);
+                    }
+                }
+            }
+            
+            showNextDialog();
+        }
+        
+        // 显示返回按钮
+        function showReturnButton() {
+            dialogText.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    ${completionDialogs[completionDialogs.length - 1]}
+                </div>
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="return-btn" style="
+                        background: linear-gradient(135deg, #ff69b4, #8a2be2);
+                        color: white;
+                        border: none;
+                        padding: 15px 30px;
+                        border-radius: 25px;
+                        font-size: 1.1rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(0, 0, 0, 0.4)';" 
+                       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 5px 15px rgba(0, 0, 0, 0.3)';">
+                        带着心之映射继续冒险
+                    </button>
+                </div>
+            `;
+            
+            // 添加返回按钮事件
+            setTimeout(() => {
+                const returnBtn = document.getElementById('return-btn');
+                if (returnBtn) {
+                    returnBtn.addEventListener('click', () => {
+                        console.log('小游戏1：点击返回按钮');
+                        returnToChapter3();
+                    });
+                }
+            }, 100);
+        }
+
+        // 显示初始对话
+        function showInitialDialog() {
+            let dialogIndex = 0;
+            
+            function showNextDialog() {
+                if (dialogIndex < dialogSequence.length) {
+                    dialogText.innerHTML = dialogSequence[dialogIndex];
+                    dialogArea.classList.add('show');
+                    dialogIndex++;
+                    
+                    if (dialogIndex < dialogSequence.length) {
+                        setTimeout(showNextDialog, 3000);
+                    } else {
+                        setTimeout(() => {
+                            dialogArea.classList.remove('show');
+                        }, 3000);
+                    }
+                }
+            }
+            
+            setTimeout(showNextDialog, 2000);
+        }
+
+        // 显示失败对话
+        function showFailureDialog() {
+            const failureDialogs = [
+                "爱丽丝的心灵感应力不足，无法理解仙境角色的深层痛苦...",
+                "共情之心破碎了，爱丽丝与仙境的心灵连接中断...",
+                "理解之路充满挑战，这次的心灵共鸣以失败告终...",
+                "或许需要更多的时间和练习，才能真正走进他们的内心世界..."
+            ];
+            
+            let dialogIndex = 0;
+            
+            function showNextFailureDialog() {
+                if (dialogIndex < failureDialogs.length) {
+                    dialogText.innerHTML = `
+                        <div style="color: rgba(255, 150, 150, 0.9); margin-bottom: 15px; font-size: 1.3rem;">
+                            💔 心灵共鸣失败
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            ${failureDialogs[dialogIndex]}
+                        </div>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button onclick="location.reload()" style="
+                                background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 20px;
+                                font-size: 1rem;
+                                font-weight: bold;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                                margin-right: 15px;
+                            " onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                                🔄 重新尝试
+                            </button>
+                            <button onclick="returnToChapter3()" style="
+                                background: linear-gradient(135deg, #6c757d, #495057);
+                                color: white;
+                                border: none;
+                                padding: 12px 25px;
+                                border-radius: 20px;
+                                font-size: 1rem;
+                                font-weight: bold;
+                                cursor: pointer;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+                            " onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                                ⬅️ 返回故事
+                            </button>
+                        </div>
+                    `;
+                    dialogArea.classList.add('show');
+                    dialogIndex++;
+                    
+                    if (dialogIndex < failureDialogs.length) {
+                        setTimeout(showNextFailureDialog, 4000);
+                    }
+                }
+            }
+            
+            showNextFailureDialog();
+        }
+
+        // 重新散布碎片
+        function shuffleFragments() {
+            if (gameState.isFailed || gameState.isCompleted) return;
+            
+            // 只重新散布未匹配的碎片
+            const unmatched = gameState.fragments.filter(f => !f.matched);
+            if (unmatched.length === 0) return;
+            
+            // 生成新的随机位置
+            const positions = generateRandomPositions();
+            let positionIndex = 0;
+            
+            unmatched.forEach(fragmentData => {
+                const fragment = fragmentData.element;
+                const newPosition = positions[positionIndex];
+                
+                // 平滑移动到新位置
+                fragment.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                fragment.style.left = newPosition.x + 'px';
+                fragment.style.top = newPosition.y + 'px';
+                
+                positionIndex++;
+            });
+            
+            // 清除选择状态
+            if (gameState.selectedFragment && !gameState.selectedFragment.classList.contains('matched')) {
+                gameState.selectedFragment.classList.remove('selected');
+                gameState.selectedFragment = null;
+                dialogArea.classList.remove('show');
+            }
+        }
+
+        // 初始化游戏
+        function initGame() {
+            initAudio(); // 初始化背景音乐
+            initParticles();
+            createEmotionFragments();
+            initPatternMatching();
+            showInitialDialog();
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查URL参数或设置默认来源
+            const urlParams = new URLSearchParams(window.location.search);
+            const source = urlParams.get('source') || 'embrace_chaos';
+            localStorage.setItem('minigame1_source', source);
+            
+            initGame();
+        });
+
+        // 返回第三章的函数
+        function returnToChapter3() {
+            console.log('小游戏1：返回第三章');
+            // 设置localStorage标记，告知第三章节游戏已完成
+            localStorage.setItem('minigame1_completed', 'true');
+            localStorage.setItem('minigame1_source', 'embrace_chaos');
+            console.log('小游戏1：已设置localStorage标记');
+            console.log('localStorage.minigame1_completed:', localStorage.getItem('minigame1_completed'));
+            // 返回第三章节
+            console.log('小游戏1：即将跳转到第三章节.html');
+            window.location.href = '第三章节.html';
+        }
+
+        // 添加键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (confirm('确定要离开心灵共鸣游戏吗？')) {
+                    returnToChapter3();
+                }
+            }
+        });
+
+        // 页面卸载时清理音频
+        window.addEventListener('beforeunload', () => {
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+            }
+        });
+    </script>
+</body>
+</html>

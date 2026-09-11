@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇域梦幻漫游录：坠落兔子洞</title>
+    <link rel="stylesheet" href="./hole_styles.css">
+</head>
+<body>
+<div class="loading-screen" id="loadingScreen">
+    <div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在加载爱丽丝的奇幻世界...</div>
+    </div>
+</div>
+
+<div class="opening-section" id="openingSection" style="display: none;">
+    <div class="opening-container">
+        <video class="opening-video" id="openingVideo" preload="auto" muted playsinline>
+            <source src="./in.mp4" type="video/mp4">
+        </video>
+        <!-- 追兔子CG音乐 -->
+        <audio id="chaseAudio" preload="auto" loop>
+            <source src="../../music/第一幕采样/4.追兔子CG.mp3" type="audio/mpeg">
+        </audio>
+        <button class="skip-button" id="skipButton">跳过开场</button>
+    </div>
+</div>
+
+<div class="hole-section" id="holeSection" style="display: none;">
+    <div class="rabbit-hole-container">
+        <div class="tunnel-layer" style="--depth: 1;"></div>
+        <div class="tunnel-layer" style="--depth: 2;"></div>
+        <div class="tunnel-layer" style="--depth: 3;"></div>
+        <div class="tunnel-layer" style="--depth: 4;"></div>
+        <div class="tunnel-layer" style="--depth: 5;"></div>
+        <div class="tunnel-layer" style="--depth: 6;"></div>
+        <div class="tunnel-layer" style="--depth: 7;"></div>
+        <div class="tunnel-layer" style="--depth: 8;"></div>
+
+        <div class="glow-layer"></div>
+
+        <div class="trap-layer"></div>
+
+        <div class="floating-elements">
+            <div class="floating-item" data-speed="0.5"></div>
+            <div class="floating-item" data-speed="0.6"></div>
+            <div class="floating-item" data-speed="0.7"></div>
+            <div class="floating-item" data-speed="0.8"></div>
+            <div class="floating-item" data-speed="0.9"></div>
+        </div>
+
+        <div class="dream-particles">
+        </div>
+    </div>
+
+    <div class="controls-hint">
+        <div class="hint-text">滚动鼠标滚轮进入洞穴</div>
+        <!-- 坠入CG音乐 -->
+        <audio id="fallingAudio" preload="auto" loop>
+            <source src="../../music/第一幕采样/inhole.m4a" type="audio/mp4">
+        </audio>
+        <div class="scroll-indicator">
+            <div class="scroll-arrow"></div>
+        </div>
+    </div>
+</div>
+
+<div class="ending-section" id="endingSection" style="display: none;">
+    <div class="ending-container">
+        <video class="ending-video" id="endingVideo" preload="auto" muted playsinline>
+            <source src="./out.mp4" type="video/mp4">
+        </video>
+    </div>
+</div>
+
+<script src="./hole_script.js"></script>
+</body>
+</html>

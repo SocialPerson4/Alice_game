@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>镜域颠倒奇居</title>
+    <!-- 成就系统 -->
+    <script src="../../js/achievement-system.js"></script>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body {
+            width: 100vw; height: 100vh; overflow: hidden;
+            background: radial-gradient(ellipse at 60% 40%, #232946 60%, #0a1026 100%);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            position: relative;
+        }
+        .starfield, .meteors {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 0;
+        }
+        .progress-bar {
+            position: absolute; top: 2vh; left: 50%; transform: translateX(-50%);
+            width: 60vw; max-width: 600px; height: 18px;
+            background: rgba(255,255,255,0.08); border-radius: 12px;
+            box-shadow: 0 2px 8px #0002;
+            z-index: 3;
+            overflow: hidden;
+        }
+        .progress-inner {
+            height: 100%; border-radius: 12px;
+            background: linear-gradient(90deg, #b3e5fc, #f8bbd0);
+            width: 0%; transition: width 0.4s cubic-bezier(.4,2,.6,1);
+        }
+        .progress-label {
+            position: absolute; width: 100%; text-align: center; top: 0; left: 0;
+            color: #fff; font-size: 1rem; line-height: 18px; letter-spacing: 0.1em;
+            text-shadow: 0 1px 4px #232946;
+            user-select: none;
+        }
+        .container {
+            display: flex; flex-direction: row; justify-content: space-between; align-items: center;
+            width: 100vw; height: 100vh; position: relative; z-index: 1;
+        }
+        .side {
+            width: 50vw; height: 100vh; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative; perspective: 1200px;
+        }
+        .side.right { transform: scaleY(-1); }
+        .room-img-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .room-svg {
+            width: 90%; max-width: 750px; min-width: 320px; height: auto;
+            display: block;
+            z-index: 1;
+            /* 移除整体模糊 */
+        }
+        .room-img-blur {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            filter: blur(18px);
+            opacity: 0.7;
+            mask-image: radial-gradient(ellipse at 50% 50%, transparent 60%, black 100%);
+            -webkit-mask-image: radial-gradient(ellipse at 50% 50%, transparent 60%, black 100%);
+        }
+        .hotspot, .egg { display: none !important; } /* 隐藏原热点 */
+        .item-img {
+            position: absolute;
+            width: 40px; height: 40px;
+            pointer-events: auto;
+            z-index: 10;
+            opacity: 0.1;
+            filter: blur(4px) grayscale(0.7);
+            transition: opacity 0.3s, filter 0.3s, transform 0.3s;
+            will-change: opacity, filter, transform;
+        }
+        .item-img.found {
+            opacity: 1 !important;
+            filter: none !important;
+            transform: scale(1.15) rotate(-8deg);
+            pointer-events: none;
+        }
+        .item-img.mirrored {
+            /* 右侧物品始终倒转，且与found等状态叠加 */
+            transform: scaleY(-1) !important;
+        }
+        /* 开始游戏界面样式 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(ellipse at 60% 40%, #232946 60%, #0a1026 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+
+        .start-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .start-title {
+            font-size: 3.5rem;
+            color: #b3e5fc;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(179, 229, 252, 0.8);
+            animation: titleGlow 2s ease-in-out infinite alternate;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .start-subtitle {
+            font-size: 1.5rem;
+            color: #fff;
+            margin-bottom: 40px;
+            text-align: center;
+            opacity: 0.9;
+            letter-spacing: 0.1em;
+        }
+
+        .start-button {
+            padding: 18px 40px;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, #b3e5fc, #f8bbd0);
+            color: #232946;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            margin: 10px;
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(179, 229, 252, 0.4);
+        }
+
+        .start-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .game-description {
+            text-align: center;
+            color: #ccc;
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(179, 229, 252, 0.8); }
+            to { text-shadow: 0 0 30px rgba(179, 229, 252, 1), 0 0 40px rgba(179, 229, 252, 0.6); }
+        }
+
+
+
+        .center-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(35,41,70,0.98);
+            color: #fff;
+            border-radius: 22px;
+            box-shadow: 0 8px 32px #0008;
+            padding: 2.2em 2.5em 1.5em 2.5em;
+            z-index: 9999;
+            font-size: 1.35rem;
+            text-align: center;
+            letter-spacing: 0.08em;
+            display: none;
+            animation: modalpop 0.7s;
+        }
+        @keyframes modalpop {
+            0% { transform: translate(-50%,-60%) scale(0.7); opacity: 0; }
+            60% { transform: translate(-50%,-52%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+        }
+        .hotspot {
+            position: absolute; width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.01); border: 2px solid #b3e5fc;
+            cursor: pointer; z-index: 4; transition: border 0.2s;
+        }
+        .hotspot.found { border: 2px solid #ffd600; background: rgba(255,255,255,0.12); }
+        .egg {
+            position: absolute; width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(255,255,255,0.01); border: 2px dashed #f8bbd0;
+            cursor: pointer; z-index: 4; display: none;
+        }
+        .egg.found { border: 2px solid #ffd600; background: rgba(255,255,255,0.18); animation: eggpop 0.7s; }
+        @keyframes eggpop { 0%{transform:scale(1);} 40%{transform:scale(1.5) rotate(10deg);} 100%{transform:scale(1) rotate(0deg);} }
+        .content-box {
+            position: absolute;
+            left: 50%;
+            bottom: 2.5vh;
+            transform: translateX(-50%);
+            width: 44vw;
+            max-width: 380px;
+            min-height: 32px;
+            background: rgba(35,41,70,0.92);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px #0004;
+            color: #fff;
+            font-size: 1.02rem;
+            padding: 0.5em 1em 0.5em 1em;
+            z-index: 5;
+            text-align: left;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            flex-wrap: wrap;
+            line-height: 1.6;
+        }
+        .title {
+            position: absolute; top: 5vh; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 2.2rem; letter-spacing: 0.22em;
+            text-shadow: 0 4px 24px #8ecae6, 0 0 2px #fff;
+            z-index: 2; font-weight: 600; user-select: none;
+        }
+        .subtitle {
+            position: absolute; top: 10vh; left: 50%; transform: translateX(-50%);
+            color: #b3e5fc; font-size: 1.1rem; letter-spacing: 0.1em;
+            z-index: 2; user-select: none;
+        }
+        
+        /* 音频控制按钮 */
+        #audio-btn {
+            position: fixed;
+            top: 70px;
+            right: 32px;
+            z-index: 9999;
+            padding: 10px 15px;
+            font-size: 1rem;
+            background: rgba(35,41,70,0.92);
+            color: #fff;
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 8px #0006;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #audio-btn:hover {
+            background: rgba(35,41,70,1);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 开始游戏界面 -->
+    <div class="start-screen" id="start-screen">
+        <div class="start-title">镜域颠倒奇居</div>
+        <div class="start-subtitle">3D镜像空间探索奇遇</div>
+        <div class="game-description">
+            爱丽丝来到了神秘的镜中颠倒屋，这里一切都显得扭曲而神秘。<br>
+            寻找隐藏的奇物，发现时间与空间的秘密，<br>
+            只有找到所有物品才能继续前往红心皇后的审判大厅。
+        </div>
+        <div class="start-buttons">
+            <button class="start-button" onclick="startGame()">🎮 开始游戏</button>
+            <button class="start-button" onclick="backToChapter4()">🔙 返回第四章</button>
+        </div>
+        <div style="margin-top: 30px; color: #888; font-size: 0.9rem;">
+            使用鼠标移动体验3D视差效果 | 点击物品完成探索
+        </div>
+    </div>
+
+    <button id="back-to-parent-btn" style="position:fixed;top:24px;right:32px;z-index:9999;padding:10px 22px;font-size:1.1rem;background:rgba(35,41,70,0.92);color:#fff;border-radius:8px;border:none;box-shadow:0 2px 8px #0006;cursor:pointer;display:none;">返回</button>
+    <button id="audio-btn" title="音频开关">🔊 音频</button>
+    <canvas class="starfield"></canvas>
+    <canvas class="meteors"></canvas>
+    <div class="progress-bar">
+        <div class="progress-inner" id="progress-inner"></div>
+        <div class="progress-label" id="progress-label">探索进度：0/3</div>
+    </div>
+    <div class="title">镜域颠倒奇居</div>
+    <div class="subtitle">3D镜像空间 · 高端卡通房间 · 探索奇遇</div>
+    <div class="container">
+        <div class="side left">
+            <div class="room-img-wrapper">
+                <img src="img/home.png" class="room-svg" id="room-left" alt="房间插图" draggable="false" />
+                <img src="img/home.png" class="room-img-blur" alt="边缘模糊" draggable="false" />
+                <!-- 物品图片（示例，位置由JS随机生成） -->
+                <img src="img/magic_book2.png" class="item-img" id="item-1" alt="魔法书" />
+                <img src="img/magic_crystal-removebg-preview.png" class="item-img" id="item-2" alt="水晶球" />
+                <img src="img/key2.png" class="item-img" id="item-3" alt="奇幻钥匙" />
+            </div>
+        </div>
+        <div class="side right">
+            <div class="room-img-wrapper">
+                <img src="img/home.png" class="room-svg" id="room-right" alt="房间插图" draggable="false" />
+                <img src="img/home.png" class="room-img-blur" alt="边缘模糊" draggable="false" />
+                <img src="img/magic_book2.png" class="item-img mirrored" id="item-1-m" alt="魔法书" />
+                <img src="img/magic_crystal-removebg-preview.png" class="item-img mirrored" id="item-2-m" alt="水晶球" />
+                <img src="img/key2.png" class="item-img mirrored" id="item-3-m" alt="奇幻钥匙" />
+            </div>
+        </div>
+    </div>
+    <div class="content-box" id="content-box">欢迎来到镜域颠倒奇居！在房间中寻找隐藏的奇物，或许还能发现神秘彩蛋……</div>
+    <div class="center-modal" id="center-modal">恭喜你！你已找到所有隐藏物品！</div>
+    
+
+    <script>
+        // 音频管理器
+        const audioManager = {
+            bgMusic: new Audio(),
+            currentMusic: null,
+            isTransitioning: false,
+            audioEnabled: true,
+            defaultVolume: 0.6,
+            fadeTime: 2000,
+            
+            init() {
+                this.bgMusic.volume = this.defaultVolume;
+                this.bgMusic.loop = true;
+                
+                this.bgMusic.addEventListener('ended', () => {
+                    if (this.currentMusic && this.audioEnabled) {
+                        this.bgMusic.play().catch(e => console.log('音频播放失败:', e));
+                    }
+                });
+                
+                this.bgMusic.addEventListener('error', (e) => {
+                    console.warn('音频加载错误:', e);
+                });
+                
+                this.updateAudioButton();
+                
+                // 播放镜中游戏音乐
+                this.playMusic('../../music/第四幕/3.镜中游戏.mp3');
+                
+                console.log('镜中颠倒屋音频系统初始化完成');
+            },
+            
+                         async playMusic(musicPath, fadeIn = true) {
+                 if (!this.audioEnabled) {
+                     console.log('音频已关闭，跳过播放');
+                     return;
+                 }
+                 
+                 if (this.isTransitioning) {
+                     return;
+                 }
+                 
+                 // 如果是相同音乐但当前已暂停，则重新播放
+                 if (this.currentMusic === musicPath && !this.bgMusic.paused) {
+                     return;
+                 }
+                
+                console.log('切换音频到:', musicPath);
+                this.isTransitioning = true;
+                
+                try {
+                    if (!this.bgMusic.paused && this.currentMusic) {
+                        await this.fadeOut();
+                    }
+                    
+                    this.bgMusic.src = musicPath;
+                    this.currentMusic = musicPath;
+                    
+                    await new Promise((resolve) => {
+                        this.bgMusic.addEventListener('canplaythrough', resolve, { once: true });
+                        this.bgMusic.load();
+                    });
+                    
+                    if (fadeIn) {
+                        this.bgMusic.volume = 0;
+                        await this.bgMusic.play();
+                        await this.fadeIn();
+                    } else {
+                        this.bgMusic.volume = this.defaultVolume;
+                        await this.bgMusic.play();
+                    }
+                    
+                    console.log('音频播放成功:', musicPath, '音量:', this.bgMusic.volume);
+                    
+                } catch (error) {
+                    console.warn('音频播放失败:', error);
+                    // 重置状态以便下次尝试
+                    this.bgMusic.volume = this.defaultVolume;
+                    this.currentMusic = null;
+                } finally {
+                    this.isTransitioning = false;
+                }
+            },
+            
+            fadeIn() {
+                return new Promise((resolve) => {
+                    const startVolume = 0;
+                    const endVolume = this.defaultVolume;
+                    const steps = 50;
+                    const stepTime = this.fadeTime / steps;
+                    const volumeStep = (endVolume - startVolume) / steps;
+                    
+                    let currentStep = 0;
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume + (volumeStep * currentStep);
+                        this.bgMusic.volume = Math.min(newVolume, endVolume);
+                        
+                        if (currentStep >= steps) {
+                            clearInterval(fadeInterval);
+                            this.bgMusic.volume = endVolume;
+                            resolve();
+                        }
+                    }, stepTime);
+                });
+            },
+            
+            fadeOut() {
+                return new Promise((resolve) => {
+                    const startVolume = this.bgMusic.volume;
+                    const endVolume = 0;
+                    const steps = 50;
+                    const stepTime = this.fadeTime / steps;
+                    const volumeStep = (startVolume - endVolume) / steps;
+                    
+                    let currentStep = 0;
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume - (volumeStep * currentStep);
+                        this.bgMusic.volume = Math.max(newVolume, endVolume);
+                        
+                        if (currentStep >= steps) {
+                            clearInterval(fadeInterval);
+                            this.bgMusic.volume = endVolume;
+                            this.bgMusic.pause();
+                            resolve();
+                        }
+                    }, stepTime);
+                });
+            },
+            
+                         async stop(fade = true) {
+                 if (this.bgMusic.paused) return;
+                 
+                 if (fade) {
+                     await this.fadeOut();
+                 } else {
+                     this.bgMusic.pause();
+                     this.bgMusic.volume = 0;
+                 }
+                 
+                 // 重置过渡状态
+                 this.isTransitioning = false;
+             },
+            
+                         toggleAudio() {
+                 this.audioEnabled = !this.audioEnabled;
+                 
+                 if (!this.audioEnabled && !this.bgMusic.paused) {
+                     this.stop(true);
+                 } else if (this.audioEnabled) {
+                     console.log('重新开启音频，当前音乐:', this.currentMusic);
+                     
+                     if (this.currentMusic) {
+                         // 如果有当前音乐，恢复播放
+                         this.bgMusic.volume = this.defaultVolume;
+                         this.playMusic(this.currentMusic, false); // 不淡入，直接播放
+                     } else {
+                         // 如果没有当前音乐，播放默认的镜中游戏音乐
+                         console.log('没有当前音乐，播放默认音乐');
+                         this.playMusic('../../music/第四幕/3.镜中游戏.mp3', false);
+                     }
+                 }
+                 
+                 this.updateAudioButton();
+             },
+            
+            updateAudioButton() {
+                const audioBtn = document.getElementById('audio-btn');
+                if (!audioBtn) return;
+                
+                if (this.audioEnabled) {
+                    audioBtn.innerHTML = '🔊 音频';
+                    audioBtn.title = '点击关闭音频';
+                } else {
+                    audioBtn.innerHTML = '🔇 静音';
+                    audioBtn.title = '点击开启音频';
+                }
+            }
+        };
+
+        // 开始游戏界面控制
+        function startGame() {
+            const startScreen = document.getElementById('start-screen');
+            startScreen.classList.add('hidden');
+            // 延迟移除，让过渡动画完成
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+            }, 1000);
+        }
+
+        function backToChapter4() {
+            // 停止音频
+            if (audioManager) {
+                audioManager.stop(false);
+            }
+            window.location.href = '../第四章节.html';
+        }
+
+
+
+        // 返回按钮逻辑
+        function isInIframe () {
+            try { return window.self !== window.top; } catch(e) { return true; }
+        }
+        const backBtn = document.getElementById('back-to-parent-btn');
+        if (isInIframe()) {
+            backBtn.style.display = 'block';
+        }
+        backBtn.onclick = function() {
+            if (isInIframe()) {
+                window.parent.postMessage({ type: 'close-index-iframe' }, '*');
+            } else {
+                // 设置返回标记
+                localStorage.setItem('alice_return_from_hidden', 'true');
+                // 返回到第二章节页面
+                window.location.href = '../第二章节.html';
+            }
+        };
+        // 星空背景
+        const starCanvas = document.querySelector('.starfield');
+        const ctx = starCanvas.getContext('2d');
+        let stars = [];
+        function resizeStarCanvas() {
+            starCanvas.width = window.innerWidth;
+            starCanvas.height = window.innerHeight;
+        }
+        function createStars() {
+            stars = [];
+            for(let i=0;i<180;i++){
+                stars.push({
+                    x: Math.random()*starCanvas.width,
+                    y: Math.random()*starCanvas.height,
+                    r: Math.random()*1.2+0.3,
+                    o: Math.random()*0.5+0.5
+                });
+            }
+        }
+        function drawStars() {
+            ctx.clearRect(0,0,starCanvas.width,starCanvas.height);
+            for(const s of stars){
+                ctx.save();
+                ctx.globalAlpha = s.o;
+                ctx.beginPath();
+                ctx.arc(s.x,s.y,s.r,0,2*Math.PI);
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = '#b3e5fc';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        function animateStars() {
+            drawStars();
+            requestAnimationFrame(animateStars);
+        }
+        resizeStarCanvas();
+        createStars();
+        animateStars();
+        window.addEventListener('resize',()=>{
+            resizeStarCanvas();
+            createStars();
+        });
+
+        // 流星动画
+        const meteorCanvas = document.querySelector('.meteors');
+        const mctx = meteorCanvas.getContext('2d');
+        meteorCanvas.width = window.innerWidth;
+        meteorCanvas.height = window.innerHeight;
+        let meteors = [];
+        function spawnMeteor() {
+            const angle = Math.random()*Math.PI/6-Math.PI/12; // -15~+15度
+            const speed = Math.random()*2+2.5; // 速度更慢
+            const len = Math.random()*80+100;
+            meteors.push({
+                x: Math.random()*window.innerWidth*0.8+window.innerWidth*0.1,
+                y: Math.random()*window.innerHeight*0.3,
+                vx: Math.cos(angle)*speed,
+                vy: Math.sin(angle)*speed+1.2, // 竖直速度也慢
+                len,
+                alpha: 1
+            });
+        }
+        function drawMeteors() {
+            mctx.clearRect(0,0,meteorCanvas.width,meteorCanvas.height);
+            for(const m of meteors){
+                mctx.save();
+                mctx.globalAlpha = m.alpha;
+                mctx.strokeStyle = 'white';
+                mctx.shadowColor = '#b3e5fc';
+                mctx.shadowBlur = 16;
+                mctx.beginPath();
+                mctx.moveTo(m.x, m.y);
+                mctx.lineTo(m.x-m.vx*m.len/12, m.y-m.vy*m.len/12);
+                mctx.lineWidth = 2.2;
+                mctx.stroke();
+                mctx.restore();
+            }
+        }
+        function updateMeteors() {
+            for(const m of meteors){
+                m.x += m.vx;
+                m.y += m.vy;
+                m.alpha -= 0.006; // 衰减更慢
+            }
+            meteors = meteors.filter(m=>m.alpha>0);
+        }
+        function animateMeteors() {
+            if(Math.random()<0.025) spawnMeteor();
+            updateMeteors();
+            drawMeteors();
+            requestAnimationFrame(animateMeteors);
+        }
+        animateMeteors();
+        window.addEventListener('resize',()=>{
+            meteorCanvas.width = window.innerWidth;
+            meteorCanvas.height = window.innerHeight;
+        });
+
+        // 物品浮现交互
+        const items = [
+            { id: 'item-1', name: '魔法书', desc: '一本闪烁着蓝光的魔法书，似乎蕴含着神秘力量。' },
+            { id: 'item-2', name: '水晶球', desc: '水晶球中隐约映出未来的影像。' },
+            { id: 'item-3', name: '奇幻钥匙', desc: '一把雕刻精美的钥匙，或许能开启未知之门。' }
+        ];
+        // 右侧镜像物品id
+        const mirroredItems = [
+            { id: 'item-1-m' },
+            { id: 'item-2-m' },
+            { id: 'item-3-m' }
+        ];
+        let found = 0;
+        let foundList = [];
+        let eggFound = false;
+        function updateProgress() {
+            document.getElementById('progress-inner').style.width = `${found/3*100}%`;
+            document.getElementById('progress-label').textContent = `探索进度：${found}/3`;
+        }
+        function updateContentBox(msg) {
+            // 自动去除多余换行，合并为一行，适当加分隔符
+            msg = msg.replace(/<br\s*\/?>/g, ' · ');
+            msg = msg.replace(/ ·  · /g, ' · ');
+            document.getElementById('content-box').innerHTML = msg;
+        }
+        // 鼠标浮现逻辑
+        document.addEventListener('mousemove', e => {
+            const mx = e.clientX;
+            const my = e.clientY;
+            items.forEach((item, idx) => {
+                const el = document.getElementById(item.id);
+                const rect = el.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+                const dist = Math.sqrt((mx-cx)**2 + (my-cy)**2);
+                // 200px内逐渐浮现
+                let op = 0.1;
+                let blur = 4;
+                if(dist < 200) {
+                    op = 0.1 + 0.9*(1 - dist/200);
+                    blur = 4 - 3.5*(1 - dist/200);
+                }
+                el.style.opacity = el.classList.contains('found') ? 1 : op;
+                el.style.filter = el.classList.contains('found') ? 'none' : `blur(${blur}px) grayscale(0.7)`;
+                // 同步右侧镜像物品浮现
+                const mel = document.getElementById(item.id+'-m');
+                if (mel) {
+                    mel.style.opacity = el.style.opacity;
+                    mel.style.filter = el.style.filter;
+                    mel.className = el.className + ' mirrored';
+                }
+            });
+        });
+        // 物品点击
+        items.forEach(item => {
+            const el = document.getElementById(item.id);
+            el.addEventListener('click', function() {
+                if (!el.classList.contains('found')) {
+                    el.classList.add('found');
+                    // 同步右侧镜像物品高亮
+                    const mel = document.getElementById(item.id+'-m');
+                    if (mel) mel.classList.add('found');
+                    found++;
+                    foundList.push(item.name);
+                    updateProgress();
+                    updateContentBox(`<b>发现物品：</b> ${item.name} <span style='font-size:0.98em;color:#b3e5fc;'>${item.desc}</span> · 已发现：${foundList.join('、')}`);
+                    // 找齐所有物品时弹窗
+                    if (found === items.length) {
+                        const modal = document.getElementById('center-modal');
+                        modal.style.display = 'block';
+                        
+                        // 解锁镜域洞察成就
+                        if (window.achievementSystem) {
+                            setTimeout(() => {
+                                window.achievementSystem.unlockAchievement('mirror_domain_insight');
+                            }, 500);
+                        }
+                        
+                        // 设置完成标记并延迟后返回第四章
+                        setTimeout(() => {
+                            // 设置localStorage标记表示完成了镜中颠倒屋
+                            localStorage.setItem('mirror_house_completed', 'true');
+                            
+                            // 停止音频
+                            audioManager.stop(true);
+                            
+                            // 返回到第四章页面
+                            setTimeout(() => {
+                                window.location.href = '../第四章节.html';
+                            }, 1000);
+                        }, 3000);
+                    }
+                }
+            });
+            el.title = `点击探索：${item.name}`;
+        });
+        // 随机生成物品位置（左右房间同步）
+        function randomizeItemPositions() {
+            const used = [];
+            items.forEach((item, idx) => {
+                let top, left, ok = false;
+                while (!ok) {
+                    top = 20 + Math.random() * 60; // 20%~80%
+                    left = 20 + Math.random() * 60; // 20%~80%
+                    // 避免重叠
+                    ok = used.every(pos => Math.abs(pos.top-top)>18 && Math.abs(pos.left-left)>18);
+                    if (ok) used.push({top, left});
+                }
+                const el = document.getElementById(item.id);
+                el.style.top = top + '%';
+                el.style.left = left + '%';
+                // 同步右侧镜像物品位置
+                const mel = document.getElementById(item.id+'-m');
+                if (mel) {
+                    mel.style.top = top + '%';
+                    mel.style.left = left + '%';
+                }
+            });
+        }
+        randomizeItemPositions();
+        // 初始内容
+        updateProgress();
+        // 初始提示内容美化
+        updateContentBox(`<b>欢迎来到镜域颠倒奇居！</b> 在房间中寻找隐藏的奇物，或许还能发现神秘彩蛋……`);
+
+        // 镜像3D视差交互
+        const roomLeft = document.getElementById('room-left');
+        const roomRight = document.getElementById('room-right');
+        // 物品节点
+        const itemNodes = items.map(i=>document.getElementById(i.id));
+        const itemNodesM = items.map(i=>document.getElementById(i.id+'-m'));
+        document.addEventListener('mousemove', e => {
+            const x = e.clientX/window.innerWidth;
+            const y = e.clientY/window.innerHeight;
+            // 3D旋转和视差（幅度加大）
+            const maxX = 40, maxY = 24, maxR = 28;
+            roomLeft.style.transform = `perspective(900px) rotateY(${-(x-0.5)*maxR}deg) rotateX(${(y-0.5)*maxR}deg) translate(${(x-0.5)*maxX}px, ${(y-0.5)*maxY}px)`;
+            roomRight.style.transform = `perspective(900px) rotateY(${(x-0.5)*maxR}deg) rotateX(${(y-0.5)*maxR}deg) translate(${-(x-0.5)*maxX}px, ${(y-0.5)*maxY}px)`;
+            // 物品随背景晃动
+            itemNodes.forEach(el => {
+                el.style.transform = `translate(${(x-0.5)*maxX}px, ${(y-0.5)*maxY}px)` + (el.classList.contains('found') ? ' scale(1.15) rotate(-8deg)' : '');
+            });
+            itemNodesM.forEach(el => {
+                // 右侧物品始终倒转，且与found等状态叠加
+                let base = `translate(${-(x-0.5)*maxX}px, ${(y-0.5)*maxY}px) scaleY(-1)`;
+                if (el.classList.contains('found')) base += ' scale(1.15) rotate(-8deg)';
+                el.style.transform = base;
+            });
+        });
+        
+        // 初始化音频系统
+        document.addEventListener('DOMContentLoaded', () => {
+            audioManager.init();
+            
+            // 音频按钮事件监听器
+            const audioBtn = document.getElementById('audio-btn');
+            if (audioBtn) {
+                audioBtn.addEventListener('click', () => {
+                    audioManager.toggleAudio();
+                });
+            }
+            
+            // 键盘快捷键
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'm': // M键切换音频
+                    case 'M':
+                        e.preventDefault();
+                        audioManager.toggleAudio();
+                        break;
+                    case 'a': // A键调试音频状态
+                    case 'A':
+                        e.preventDefault();
+                        console.log('=== 镜中颠倒屋音频状态调试 ===');
+                        console.log('音频启用:', audioManager.audioEnabled);
+                        console.log('当前音乐:', audioManager.currentMusic);
+                        console.log('音频暂停状态:', audioManager.bgMusic.paused);
+                        console.log('音频音量:', audioManager.bgMusic.volume);
+                        console.log('正在转换:', audioManager.isTransitioning);
+                        console.log('===============================');
+                        break;
+                }
+            });
+        });
+        
+        // 页面卸载时清理音频资源
+        window.addEventListener('beforeunload', () => {
+            if (audioManager) {
+                audioManager.stop(false);
+            }
+        });
+        
+        // 在跳转回第四章时停止音频
+        const originalLocationHref = window.location.href;
+        window.addEventListener('beforeunload', () => {
+            if (audioManager && window.location.href !== originalLocationHref) {
+                audioManager.stop(false);
+            }
+        });
+    </script>
+</body>
+</html>

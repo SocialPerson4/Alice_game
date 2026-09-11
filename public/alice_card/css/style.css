@@ -1,0 +1,383 @@
+/* 定义CSS变量，方便统一管理和修改主题颜色 */
+:root {
+    --primary-color: #5a2d7f; /* 深紫色 */
+    --secondary-color: #c9a7e0; /* 浅紫色/薰衣草色 */
+    --accent-color: #e0b0e0; /* 柔和的粉紫色 */
+    --text-color-light: #f0f0f0; /* 浅色文本 */
+    --text-color-dark: #333; /* 深色文本 */
+    --border-color: #8f5aae; /* 边框颜色 */
+    --background-gradient-start: #2a0a3a; /* 背景渐变起始色 */
+    --background-gradient-end: #0a011a; /* 背景渐变结束色 */
+    --card-bg-color: rgba(0, 0, 0, 0.4); /* 卡片背景色 */
+    --sidebar-bg-color: rgba(0, 0, 0, 0.6); /* 侧边栏背景色 */
+    --paper-texture-url: url('../img/old.png'); /* 示例旧纸张纹理图片URL，请替换为你的实际URL */
+    --current-character-glow-color: 224, 176, 224; /* 默认发光颜色 RGB (accent-color), 爱丽丝的默认色 */
+}
+
+/* 背景平移动画的关键帧 */
+@keyframes backgroundPan {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+/* 页面基础样式 */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background:
+            linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-end)), /* 魔法渐变层 */
+            var(--paper-texture-url); /* 旧纸张纹理层 */
+    background-size: 200% 200%, cover; /* 渐变层放大平移，纹理层覆盖 */
+    background-blend-mode: multiply; /* 混合模式，使纹理与渐变融合 */
+    animation: backgroundPan 60s linear infinite alternate; /* 缓慢、微妙的背景动画 */
+    color: var(--text-color-light);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    position: relative;
+    opacity: 0.95; /* 整体略微降低透明度，让纹理更明显 */
+}
+
+/* 容器样式，包含主卡片 */
+.container {
+    display: flex; /* 使用Flexbox进行整体布局 */
+    width: 90vw; /* 占据视口宽度的90% */
+    height: 85vh; /* 占据视口高度的85% */
+    max-width: 1200px; /* 最大宽度限制 */
+    max-height: 700px; /* 最大高度限制 */
+    background-color: transparent;
+    border-radius: 15px;
+    /* 增强边缘发光效果，使用动态颜色变量 */
+    border: 1px solid var(--border-color); /* 现有边框 */
+    box-shadow:
+            0 0 15px rgba(var(--current-character-glow-color), 0.7), /* 较近较亮的发光 */
+            0 0 30px rgba(var(--current-character-glow-color), 0.4), /* 较远较柔和的发光 */
+            0 10px 30px rgba(0, 0, 0, 0.5); /* 基础阴影 */
+    transition: box-shadow 0.5s ease; /* 平滑过渡阴影变化 */
+    backdrop-filter: blur(10px); /* 磨砂玻璃效果 */
+    overflow: hidden;
+    position: relative;
+}
+
+/* 主角色显示卡片样式 */
+.main-character-card {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--card-bg-color);
+}
+
+/* 卡片背景动画层 */
+.card-background-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover; /* 覆盖整个区域 */
+    background-position: center;
+    opacity: 0.33; /* 更柔和的背景透明度 */
+    filter: blur(8px); /* 模糊效果 */
+    z-index: 0;
+    transition: background-image 0.5s ease-in-out, opacity 0.5s ease; /* 背景图片平滑过渡 */
+}
+
+/* 卡片背景微妙光泽与反射效果 */
+.main-character-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.05) 0%,
+            rgba(255, 255, 255, 0) 50%,
+            rgba(255, 255, 255, 0.05) 100%
+    );
+    pointer-events: none; /* 允许点击穿透 */
+    z-index: 1; /* 确保在内容下方但在模糊背景之上 */
+    opacity: 0; /* 默认隐藏 */
+    transition: opacity 0.3s ease; /* 平滑过渡显示 */
+}
+
+.main-character-card:hover::before {
+    opacity: 1; /* 鼠标悬停时显示 */
+}
+
+/* 主内容区域，包含人物立绘和右侧面板 */
+.main-content-area {
+    flex-grow: 1;
+    position: relative; /* 确保子元素的绝对定位参考此区域 */
+    /* Removed padding from here, added to children for precise control */
+    height: 100%; /* 占据父容器所有高度 */
+    box-sizing: border-box; /* 包含padding在内的高度计算 */
+}
+
+/* 主角色视觉图（动态图片/视频）样式 */
+.character-main-visual {
+    position: absolute; /* 绝对定位，脱离文档流 */
+    left: 20px; /* 距离左侧固定内边距 */
+    top: 20px; /* 距离顶部固定内边距 */
+    bottom: 20px; /* 距离底部固定内边距，实现上下边距固定 */
+    width: calc(45% - 20px); /* 占据卡片宽度的一部分，并减去左侧内边距 */
+    height: calc(100% - 40px); /* 占据卡片高度的大部分，并减去上下内边距 */
+    object-fit: contain; /* 确保整个视频/图片都在框内显示，不裁剪 */
+    z-index: 2;
+    pointer-events: none;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease-in-out;
+    transform-origin: left bottom;
+    margin-top: 0; /* 重置可能存在的margin-top */
+}
+
+/* 右侧面板样式 */
+.right-panel-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* 调整定位，使其在主视觉右侧，并控制其宽度 */
+    position: absolute; /* 绝对定位 */
+    right: 20px; /* 距离右侧固定内边距 */
+    top: 40px; /* 修改：增大 top 值，使整体向下移动 */
+    width: calc(55% - 40px); /* 占据卡片宽度剩余部分，减去左右内边距 */
+    height: calc(100% - 60px); /* 相应调整高度 */
+    padding-left: 0; /* 重置可能存在的内边距 */
+    box-sizing: border-box; /* 包含padding在内的高度计算 */
+    margin-left: 0; /* 重置可能存在的margin-left */
+    margin-top: 0; /* 重置可能存在的margin-top */
+    z-index: 1;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    justify-content: flex-start; /* 改变：从顶部开始排列内容 */
+    overflow-y: auto; /* 允许整个右侧面板在内容过多时滚动 */
+    padding: 20px; /* 为右侧面板内容添加内边距 */
+    padding-top: 30px; /* 修改：进一步向下推文字内容 */
+}
+
+/* Horizontal avatar bar styles */
+.horizontal-avatar-bar {
+    width: 100%;
+    height: auto; /* 自动高度 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
+    padding: 10px 0; /* 增加上下内边距 */
+    margin-bottom: 15px; /* 调整与下方文字的距离 */
+}
+
+/* Character avatar styles */
+.char-avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Removed text styles as images are used */
+    /* color: var(--text-color-light); */
+    /* font-family: 'Playfair Display', serif; */
+    /* font-size: 1.1em; */
+    /* font-weight: 700; */
+    /* text-shadow: 0 0 4px rgba(0,0,0,0.5); */
+}
+
+.char-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image covers the circular area */
+}
+
+/* Active avatar state */
+.char-avatar.active {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 20px var(--accent-color), 0 0 35px var(--accent-color);
+    transform: scale(1.1);
+}
+
+/* Card content styles */
+.card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 左对齐文字内容 */
+    text-align: left; /* 左对齐文本 */
+    width: 100%;
+    position: relative;
+    overflow-y: visible;
+    padding-right: 0;
+    flex-grow: 1;
+}
+
+/* Hidden state for animation */
+.character-main-visual.hidden {
+    transform: translateX(-100px) scale(0.8);
+    opacity: 0;
+}
+
+/* Hidden state for right panel */
+.right-panel-wrapper.hidden {
+    transform: translateX(50px) scale(0.9);
+    opacity: 0;
+}
+
+/* Cipher text styles */
+.card-cipher {
+    font-family: 'Playfair Display', serif;
+    font-size: 2em;
+    font-style: italic;
+    margin-bottom: 10px; /* 间距 */
+    color: var(--accent-color);
+    text-shadow: 0 0 15px rgba(224, 176, 224, 0.9), 0 0 30px rgba(224, 176, 224, 0.6);
+    position: relative;
+    padding-left: 0;
+    line-height: 1.2;
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
+/* Before/After pseudo-elements for cipher quotes */
+.card-cipher::before {
+    content: '“';
+    font-size: 2em;
+    position: absolute;
+    left: -10px;
+    top: -5px;
+    color: var(--secondary-color);
+    opacity: 0.8;
+}
+
+.card-cipher::after {
+    content: '”';
+    font-size: 2em;
+    position: absolute;
+    right: -10px;
+    bottom: -5px;
+    color: var(--secondary-color);
+    opacity: 0.8;
+}
+
+/* Character name styles */
+.card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5em;
+    margin-bottom: 10px; /* 间距 */
+    color: var(--secondary-color);
+    text-shadow: 0 0 10px rgba(201, 167, 224, 0.7), 0 0 20px rgba(201, 167, 224, 0.5);
+    width: 100%;
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
+/* Character description styles */
+.card-description {
+    font-size: 1.4em;
+    line-height: 1.5;
+    width: 100%;
+    color: var(--accent-color);
+    font-family: 'Playfair Display', serif;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 5px;
+    box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .container {
+        flex-direction: column;
+        width: 95%;
+        height: auto;
+        max-height: 90vh;
+    }
+
+    .main-character-card {
+        padding: 0;
+    }
+
+    .horizontal-avatar-bar {
+        height: 80px;
+        gap: 10px;
+        padding: 0 10px;
+        overflow-x: auto;
+        justify-content: flex-start;
+        border-radius: 15px 15px 0 0;
+        position: static;
+        width: auto;
+        top: auto;
+        right: auto;
+        transform: none;
+        margin-bottom: 0;
+    }
+
+    .char-avatar {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+        min-height: 50px;
+    }
+
+    .main-content-area {
+        flex-direction: column;
+        padding: 20px;
+        justify-content: center;
+        align-items: center;
+        padding-top: 20px;
+        position: static; /* 禁用绝对定位，恢复流式布局 */
+        height: auto;
+    }
+
+    .character-main-visual {
+        position: static; /* 禁用绝对定位，恢复流式布局 */
+        width: 80%;
+        max-width: 300px;
+        height: auto;
+        margin-top: 20px;
+        left: auto;
+        bottom: auto;
+        top: auto; /* 重置top */
+    }
+
+    .right-panel-wrapper {
+        padding-left: 0;
+        align-items: center;
+        transform: none;
+        position: static; /* 禁用绝对定位，恢复流式布局 */
+        width: auto;
+        top: auto;
+        right: auto;
+        height: auto; /* 自动高度 */
+        padding: 20px; /* 移动端保持内边距 */
+    }
+
+    .card-content {
+        position: static;
+        padding-right: 0;
+        align-items: center;
+        margin-bottom: 20px;
+        width: auto;
+        top: auto;
+        left: auto;
+        right: auto;
+        transform: none;
+        text-align: center;
+    }
+
+    .card-cipher::before,
+    .card-cipher::after {
+        display: none;
+    }
+}

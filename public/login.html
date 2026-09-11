@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 奇幻梦游录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'Cinzel', serif;
+            background: linear-gradient(135deg, #1a4a5c, #2d5a87, #4a5d8a, #6b4c93);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景粒子效果 */
+        .background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 登录容器 */
+        .login-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6, #87ceeb);
+            border-radius: 20px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        /* 标题 */
+        .login-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 表单组 */
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(173, 216, 230, 0.8);
+            box-shadow: 0 0 20px rgba(173, 216, 230, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 登录按钮 */
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6);
+            border: none;
+            border-radius: 10px;
+            color: #1a4a5c;
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(173, 216, 230, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 注册链接 */
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .register-link a {
+            color: rgba(173, 216, 230, 0.9);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .register-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6);
+            transition: width 0.3s ease;
+        }
+
+        .register-link a:hover::after {
+            width: 100%;
+        }
+
+        .register-link a:hover {
+            color: #add8e6;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 返回主页链接 */
+        .back-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .back-home:hover {
+            color: #add8e6;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 加载状态 */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading .login-btn {
+            background: linear-gradient(45deg, #666, #888);
+        }
+
+        /* 错误消息 */
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            color: #ffcccc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* 成功消息 */
+        .success-message {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.5);
+            color: #ccffcc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* 动画 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes borderGlow {
+            0%, 100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                width: 95vw;
+            }
+
+            .login-title {
+                font-size: 2rem;
+            }
+        }
+        /* 音频控制按钮 */
+        .audio-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .audio-toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-toggle-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+        }
+
+        .audio-toggle-btn.muted {
+            background: rgba(255, 100, 100, 0.3);
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        .audio-toggle-btn.muted:hover {
+            background: rgba(255, 100, 100, 0.4);
+            box-shadow: 0 15px 35px rgba(255, 100, 100, 0.4);
+        }
+
+        /* 设置按钮 */
+        .settings-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .settings-toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-toggle-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+        }
+
+        /* 设置面板 */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .settings-panel.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .settings-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-content {
+            position: relative;
+            background: linear-gradient(135deg, rgba(26, 74, 92, 0.95), rgba(45, 90, 135, 0.95));
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80%;
+            margin: 5% auto;
+            padding: 30px;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(173, 216, 230, 0.3);
+        }
+
+        .settings-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .settings-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-close:hover {
+            background: rgba(255, 100, 100, 0.3);
+            transform: scale(1.1);
+        }
+
+        .settings-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .settings-section h3 {
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(173, 216, 230, 0.3);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(173, 216, 230, 0.2);
+        }
+
+        .setting-item label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .setting-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .setting-value {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .setting-btn {
+            background: rgba(173, 216, 230, 0.2);
+            border: 2px solid rgba(173, 216, 230, 0.4);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .setting-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .setting-btn.danger {
+            background: rgba(255, 100, 100, 0.2);
+            border-color: rgba(255, 100, 100, 0.4);
+        }
+
+        .setting-btn.danger:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+
+        .setting-slider {
+            width: 150px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .setting-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #87ceeb, #add8e6);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .setting-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, #87ceeb, #add8e6);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .settings-content {
+                width: 95%;
+                margin: 2.5% auto;
+                padding: 20px;
+            }
+
+            .settings-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .setting-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .setting-slider {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景音乐 -->
+    <audio id="backgroundMusic" loop>
+        <source src="music/爱丽丝的梦境.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 音频控制按钮 -->
+    <div class="audio-button" id="audioButton">
+        <button class="audio-toggle-btn" id="audioToggle">🔊</button>
+    </div>
+
+    <!-- 设置按钮 -->
+    <div class="settings-button" id="settingsButton">
+        <button class="settings-toggle-btn" id="settingsToggle">⚙️</button>
+    </div>
+
+    <!-- 背景画布 -->
+    <canvas class="background-canvas" id="backgroundCanvas"></canvas>
+
+    <!-- 返回主页链接 -->
+    <a href="/" class="back-home">← 返回主页</a>
+
+    <!-- 登录容器 -->
+    <div class="login-container">
+        <h1 class="login-title">仙境登录</h1>
+        
+        <!-- 错误消息 -->
+        <div class="error-message" id="errorMessage"></div>
+        
+        <!-- 成功消息 -->
+        <div class="success-message" id="successMessage"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required>
+            </div>
+
+            <button type="submit" class="login-btn">进入仙境</button>
+        </form>
+
+        <div class="register-link">
+            <p>还没有账号？ <a href="/register">立即注册</a></p>
+        </div>
+    </div>
+
+    <script>
+        // 背景粒子效果
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = `rgba(${255}, ${215 + Math.random() * 40}, ${Math.random() * 100}, ${Math.random() * 0.5 + 0.2})`;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                if (this.life <= 0) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = this.maxLife;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                const alpha = this.life / this.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 登录表单处理
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            if (type === 'error') {
+                element.style.background = 'rgba(255, 0, 0, 0.2)';
+                element.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+                element.style.color = '#ffcccc';
+            } else {
+                element.style.background = 'rgba(0, 255, 0, 0.2)';
+                element.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+                element.style.color = '#ccffcc';
+            }
+
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showMessage(errorMessage, '请填写用户名和密码', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            loginForm.classList.add('loading');
+            const submitBtn = loginForm.querySelector('.login-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '正在进入仙境...';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 保存token到localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    showMessage(successMessage, '登录成功！正在跳转...', 'success');
+                    
+                    // 延迟跳转到主页
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showMessage(errorMessage, data.message || '登录失败', 'error');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                showMessage(errorMessage, '网络错误，请稍后重试', 'error');
+            } finally {
+                // 恢复按钮状态
+                loginForm.classList.remove('loading');
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        // 音频控制系统
+        const audio = document.getElementById('backgroundMusic');
+        const audioToggle = document.getElementById('audioToggle');
+        const settingsToggle = document.getElementById('settingsToggle');
+
+        // 音频状态管理
+        let isAudioMuted = false;
+        let savedVolume = 0.5;
+
+        // 初始化音频设置
+        function initializeAudio() {
+            // 从localStorage加载音频设置
+            const savedAudioSettings = localStorage.getItem('audioSettings');
+            if (savedAudioSettings) {
+                const settings = JSON.parse(savedAudioSettings);
+                audio.volume = settings.volume || 0.5;
+                isAudioMuted = settings.muted || false;
+                savedVolume = settings.volume || 0.5;
+            } else {
+                audio.volume = 0.5;
+            }
+
+            // 更新音频按钮状态
+            updateAudioToggleButton();
+            
+            // 尝试自动播放（需要用户交互）
+            audio.addEventListener('canplaythrough', () => {
+                if (!isAudioMuted) {
+                    audio.play().catch(() => {
+                        console.log('需要用户交互才能播放音频');
+                    });
+                }
+            });
+        }
+
+        // 更新音频开关按钮
+        function updateAudioToggleButton() {
+            if (isAudioMuted || audio.paused) {
+                audioToggle.textContent = '🔇';
+                audioToggle.classList.add('muted');
+            } else {
+                audioToggle.textContent = '🔊';
+                audioToggle.classList.remove('muted');
+            }
+        }
+
+        // 切换音频播放/暂停
+        function toggleAudio() {
+            if (isAudioMuted) {
+                // 取消静音
+                isAudioMuted = false;
+                audio.volume = savedVolume;
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else if (audio.paused) {
+                // 播放
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else {
+                // 暂停
+                audio.pause();
+            }
+            updateAudioToggleButton();
+            saveAudioSettings();
+        }
+
+        // 保存音频设置
+        function saveAudioSettings() {
+            const settings = {
+                volume: savedVolume,
+                muted: isAudioMuted
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+        }
+
+        // 显示设置面板
+        function showSettingsPanel() {
+            // 移除现有设置面板
+            const existingPanel = document.querySelector('.settings-panel');
+            if (existingPanel) {
+                existingPanel.remove();
+            }
+
+            // 创建设置面板
+            const settingsPanel = document.createElement('div');
+            settingsPanel.className = 'settings-panel';
+            
+            settingsPanel.innerHTML = `
+                <div class="settings-overlay"></div>
+                <div class="settings-content">
+                    <div class="settings-header">
+                        <h2>⚙️ 游戏设置</h2>
+                        <button class="settings-close" onclick="closeSettingsPanel()">✕</button>
+                    </div>
+                    
+                    <div class="settings-sections">
+                        <div class="settings-section">
+                            <h3>🎵 音频设置</h3>
+                            <div class="setting-item">
+                                <label>背景音乐</label>
+                                <div class="setting-controls">
+                                    <button class="setting-btn" onclick="toggleAudioFromSettings()">
+                                        ${isAudioMuted || audio.paused ? '🔇 开启' : '🔊 关闭'}
+                                    </button>
+                                    <span class="setting-value">音量: ${Math.round(savedVolume * 100)}%</span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <label>音量调节</label>
+                                <input type="range" class="setting-slider" id="settingsVolumeSlider" 
+                                       min="0" max="100" value="${Math.round(savedVolume * 100)}">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>💾 数据管理</h3>
+                            <div class="setting-item">
+                                <label>清除本地数据</label>
+                                <button class="setting-btn danger" onclick="clearLocalData()">
+                                    清除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(settingsPanel);
+            
+            // 添加动画效果
+            setTimeout(() => {
+                settingsPanel.classList.add('show');
+            }, 10);
+
+            // 设置面板事件监听
+            settingsPanel.querySelector('.settings-overlay').addEventListener('click', closeSettingsPanel);
+            
+            // 设置面板音量滑块
+            const settingsVolumeSlider = document.getElementById('settingsVolumeSlider');
+            settingsVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                audio.volume = volume;
+                savedVolume = volume;
+                
+                if (volume === 0) {
+                    isAudioMuted = true;
+                } else {
+                    isAudioMuted = false;
+                }
+                
+                updateAudioToggleButton();
+                saveAudioSettings();
+                
+                // 更新设置面板显示
+                const settingValue = settingsPanel.querySelector('.setting-value');
+                if (settingValue) {
+                    settingValue.textContent = `音量: ${e.target.value}%`;
+                }
+            });
+            
+            // ESC键关闭
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    closeSettingsPanel();
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
+
+        // 关闭设置面板
+        function closeSettingsPanel() {
+            const panel = document.querySelector('.settings-panel');
+            if (panel) {
+                panel.classList.remove('show');
+                setTimeout(() => panel.remove(), 300);
+            }
+        }
+
+        // 从设置面板切换音频
+        function toggleAudioFromSettings() {
+            toggleAudio();
+            
+            // 更新设置面板按钮
+            const settingsPanel = document.querySelector('.settings-panel');
+            if (settingsPanel) {
+                const audioBtn = settingsPanel.querySelector('.setting-btn');
+                if (audioBtn) {
+                    audioBtn.textContent = isAudioMuted || audio.paused ? '🔇 开启' : '🔊 关闭';
+                }
+            }
+        }
+
+        // 清除本地数据
+        function clearLocalData() {
+            if (confirm('确定要清除所有本地数据吗？这将包括音频设置等。')) {
+                localStorage.clear();
+                showMessage(successMessage, '🗑️ 本地数据已清除', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+
+        // 音频控制事件监听
+        audioToggle.addEventListener('click', toggleAudio);
+        settingsToggle.addEventListener('click', showSettingsPanel);
+
+        // 强制清除登录状态，要求重新登录
+        window.addEventListener('load', () => {
+            // 初始化音频系统
+            initializeAudio();
+            
+            // 清除现有的登录状态
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            // 显示需要重新登录的提示
+            setTimeout(() => {
+                showMessage(successMessage, '请输入您的账号密码登录', 'success');
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

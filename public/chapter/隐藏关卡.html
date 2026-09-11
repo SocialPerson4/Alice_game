@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐藏关卡：仙境的悲歌</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 成就系统 -->
+    <script src="../js/achievement-system.js"></script>
+    <!-- 音频系统 -->
+    <audio id="bg-music" loop preload="auto" style="display: none;">
+        <source src="../music/第二幕/5.仙境的过去_拼图游戏.mp3" type="audio/mpeg">
+    </audio>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460);
+            color: white;
+        }
+
+        /* 主游戏容器 */
+        .void-space {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.8) 70%);
+            overflow: hidden;
+        }
+
+        /* 漂浮粒子背景 */
+        .floating-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 0.8; }
+        }
+
+        /* 爱丽丝角色 */
+        .alice-character {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 300px;
+            background: url('./img/爱丽丝.jpg') center/contain no-repeat;
+            z-index: 10;
+            filter: drop-shadow(0 0 20px rgba(173, 216, 230, 0.5));
+            animation: gentle-sway 4s ease-in-out infinite;
+        }
+
+        @keyframes gentle-sway {
+            0%, 100% { transform: translateX(-50%) rotate(-1deg); }
+            50% { transform: translateX(-50%) rotate(1deg); }
+        }
+
+        /* 拼图成功放置动画 */
+        @keyframes placeSuccess {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(173, 216, 230, 0); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(173, 216, 230, 0.8); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(173, 216, 230, 0); }
+        }
+
+        /* 拼图碎片 */
+        .puzzle-piece {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            cursor: grab;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                       box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                       border-color 0.2s ease;
+            z-index: 50;
+            border: 3px solid rgba(173, 216, 230, 0.6);
+            user-select: none;
+            background-size: 480px 360px; /* 4x3的拼图总尺寸 */
+            background-repeat: no-repeat;
+            background-clip: content-box;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 
+                       0 0 20px rgba(173, 216, 230, 0.1);
+            border-radius: 6px;
+            will-change: transform;
+            backdrop-filter: blur(1px);
+            overflow: hidden;
+        }
+
+        .puzzle-piece:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(173, 216, 230, 0.5);
+            z-index: 60;
+            border-color: rgba(173, 216, 230, 0.9);
+        }
+
+        .puzzle-piece:active {
+            cursor: grabbing;
+            transition: none;
+        }
+
+        .puzzle-piece.dragging {
+            z-index: 100;
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(173, 216, 230, 0.6);
+            border-color: rgba(173, 216, 230, 1);
+            transition: none;
+        }
+
+        .puzzle-piece.placed {
+            cursor: default;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+            position: static;
+            margin: 0;
+            transform: none;
+            transition: all 0.3s ease;
+        }
+
+        /* 拼图画布区域 */
+        .puzzle-canvas {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 480px;
+            height: 360px;
+            border: 4px solid rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            z-index: 15;
+            display: grid;
+            grid-template-columns: repeat(4, 120px);
+            grid-template-rows: repeat(3, 120px);
+            gap: 0;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .puzzle-slot {
+            border: 2px dashed rgba(173, 216, 230, 0.4);
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+
+
+
+        .puzzle-slot:hover {
+            background: rgba(173, 216, 230, 0.1);
+        }
+
+        .puzzle-slot.highlight {
+            background: rgba(173, 216, 230, 0.2);
+            border-color: rgba(173, 216, 230, 0.8);
+            box-shadow: inset 0 0 20px rgba(173, 216, 230, 0.3);
+        }
+
+        .puzzle-slot.filled {
+            background: transparent;
+            border: none;
+        }
+
+        /* 拼图碎片散布区域 */
+        .puzzle-pieces-area {
+            position: absolute;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 200px;
+            z-index: 10;
+        }
+
+        /* 完成的拼图预览 */
+        .puzzle-preview {
+            position: absolute;
+            top: 5%;
+            right: 5%;
+            width: 120px;
+            height: 90px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            background: url('./img/仙境.png') center/cover;
+            opacity: 0.3;
+            z-index: 20;
+        }
+
+        .puzzle-preview::before {
+            content: "目标图片";
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* 情感文本显示 */
+        .emotion-text {
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            z-index: 20;
+            max-width: 80%;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .emotion-text.show {
+            opacity: 1;
+        }
+
+        /* 完成动画 */
+        .completion-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(173, 216, 230, 0.3) 0%, transparent 70%);
+            opacity: 0;
+            z-index: 25;
+            pointer-events: none;
+            animation: completion-glow 3s ease-out;
+        }
+
+        @keyframes completion-glow {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        /* 音乐可视化 */
+        .music-visualizer {
+            position: absolute;
+            bottom: 5%;
+            right: 5%;
+            width: 100px;
+            height: 40px;
+            display: flex;
+            align-items: end;
+            gap: 3px;
+            z-index: 30;
+        }
+
+        .music-bar {
+            width: 4px;
+            background: linear-gradient(to top, rgba(173, 216, 230, 0.8), rgba(255, 182, 193, 0.8));
+            border-radius: 2px;
+            animation: music-beat 1.5s ease-in-out infinite;
+        }
+
+        .music-bar:nth-child(2) { animation-delay: 0.1s; }
+        .music-bar:nth-child(3) { animation-delay: 0.2s; }
+        .music-bar:nth-child(4) { animation-delay: 0.3s; }
+        .music-bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes music-beat {
+            0%, 100% { height: 10px; opacity: 0.5; }
+            50% { height: 30px; opacity: 1; }
+        }
+
+        /* 标题和提示 */
+        .chapter-title {
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 20px rgba(173, 216, 230, 0.8);
+            z-index: 20;
+            text-align: center;
+        }
+
+        .hint-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .hint-text.hide {
+            opacity: 0;
+        }
+
+        /* 进度指示器 */
+        .progress-indicator {
+            position: absolute;
+            top: 15%;
+            right: 5%;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: 20;
+        }
+
+        /* 完成界面样式 */
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .completion-overlay.show {
+            opacity: 1;
+        }
+
+        .completion-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            max-width: 500px;
+            color: #333;
+        }
+
+        .completion-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #8a2be2;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+        }
+
+        .completion-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .completion-reward {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .return-button {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            font-family: 'Noto Serif SC', serif;
+            margin-top: 20px;
+        }
+
+        .return-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            filter: brightness(1.1);
+        }
+
+        .return-button:active {
+            transform: translateY(-1px);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .puzzle-canvas {
+                width: 320px;
+                height: 240px;
+                grid-template-columns: repeat(4, 80px);
+                grid-template-rows: repeat(3, 80px);
+            }
+            
+            .puzzle-piece {
+                width: 80px;
+                height: 80px;
+                background-size: 320px 240px;
+            }
+            
+            .puzzle-preview {
+                width: 80px;
+                height: 60px;
+            }
+            
+            .chapter-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .puzzle-canvas {
+                width: 240px;
+                height: 180px;
+                grid-template-columns: repeat(4, 60px);
+                grid-template-rows: repeat(3, 60px);
+            }
+            
+            .puzzle-piece {
+                width: 60px;
+                height: 60px;
+                background-size: 240px 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="void-space">
+        <!-- 漂浮粒子背景 -->
+        <div class="floating-particles" id="particles"></div>
+        
+        <!-- 章节标题 -->
+        <div class="chapter-title">隐藏关卡：仙境的悲歌</div>
+        
+        <!-- 进度指示器 -->
+        <div class="progress-indicator">
+            <span id="progress-text">拼图完成: <span id="completed-count">0</span>/12</span>
+        </div>
+        
+        <!-- 拼图预览 -->
+        <div class="puzzle-preview"></div>
+        
+        <!-- 拼图画布区域 -->
+        <div class="puzzle-canvas" id="puzzle-canvas">
+            <!-- 4x3 = 12个拼图槽位 -->
+            <div class="puzzle-slot" data-slot="0"></div>
+            <div class="puzzle-slot" data-slot="1"></div>
+            <div class="puzzle-slot" data-slot="2"></div>
+            <div class="puzzle-slot" data-slot="3"></div>
+            <div class="puzzle-slot" data-slot="4"></div>
+            <div class="puzzle-slot" data-slot="5"></div>
+            <div class="puzzle-slot" data-slot="6"></div>
+            <div class="puzzle-slot" data-slot="7"></div>
+            <div class="puzzle-slot" data-slot="8"></div>
+            <div class="puzzle-slot" data-slot="9"></div>
+            <div class="puzzle-slot" data-slot="10"></div>
+            <div class="puzzle-slot" data-slot="11"></div>
+        </div>
+        
+        <!-- 爱丽丝角色 -->
+        <div class="alice-character"></div>
+        
+        <!-- 拼图碎片散布区域 -->
+        <div class="puzzle-pieces-area" id="puzzle-pieces-area">
+            <!-- 拼图碎片将通过JavaScript生成 -->
+        </div>
+        
+        <!-- 提示文本 -->
+        <div class="hint-text" id="hint-text">
+            拖拽拼图碎片，重组仙境花园的美丽画面...
+        </div>
+        
+        <!-- 情感文本 */
+        <div class="emotion-text" id="emotion-text"></div>
+        
+       <!-- 音乐可视化 -->
+        <div class="music-visualizer">
+            <div class="music-bar"></div>
+            <div class="music-bar"></div>
+            <div class="music-bar"></div>
+            <div class="music-bar"></div>
+            <div class="music-bar"></div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            completedPuzzles: 0,
+            totalPuzzles: 12,
+            isCompleted: false,
+            draggedPiece: null,
+            puzzleOrder: [],
+            pieces: [],
+            initialPosition: null,
+            dragOffset: null,
+            lastHighlightCheck: null
+        };
+
+        // 音频管理系统
+        const audioManager = {
+            bgMusic: document.getElementById('bg-music'),
+            defaultVolume: 0.5,
+            hasPlayedOnce: false,
+            
+            // 初始化音频
+            init() {
+                this.bgMusic.volume = this.defaultVolume;
+                
+                // 处理音频加载错误
+                this.bgMusic.addEventListener('error', (e) => {
+                    console.warn('音频加载错误:', e);
+                });
+                
+                this.bgMusic.addEventListener('canplaythrough', () => {
+                    console.log('音频加载完成，尝试播放');
+                    this.tryPlayMusic();
+                });
+                
+                // 添加用户交互监听器
+                document.addEventListener('click', () => {
+                    if (!this.hasPlayedOnce) {
+                        this.tryPlayMusic();
+                    }
+                }, { once: false });
+                
+                console.log('隐藏关卡音频系统初始化完成');
+            },
+            
+            // 尝试播放音乐
+            async tryPlayMusic() {
+                if (this.hasPlayedOnce) return;
+                
+                try {
+                    await this.playMusic();
+                    this.hasPlayedOnce = true;
+                } catch (error) {
+                    console.log('音频播放需要用户交互，等待用户点击');
+                }
+            },
+            
+            // 播放音乐
+            async playMusic() {
+                try {
+                    // 淡入播放
+                    this.bgMusic.volume = 0;
+                    await this.bgMusic.play();
+                    await this.fadeIn();
+                    console.log('隐藏关卡音乐开始播放');
+                } catch (error) {
+                    console.warn('音频播放失败:', error);
+                    throw error;
+                }
+            },
+            
+            // 淡入效果
+            fadeIn(duration = 2000) {
+                return new Promise((resolve) => {
+                    const startVolume = 0;
+                    const endVolume = this.defaultVolume;
+                    const steps = 30;
+                    const stepTime = duration / steps;
+                    const volumeStep = (endVolume - startVolume) / steps;
+                    
+                    let currentStep = 0;
+                    this.bgMusic.volume = startVolume;
+                    
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume + (volumeStep * currentStep);
+                        
+                        if (currentStep >= steps) {
+                            this.bgMusic.volume = endVolume;
+                            clearInterval(fadeInterval);
+                            resolve();
+                        } else {
+                            this.bgMusic.volume = Math.min(newVolume, endVolume);
+                        }
+                    }, stepTime);
+                });
+            },
+            
+            // 淡出效果
+            fadeOut(duration = 1500) {
+                return new Promise((resolve) => {
+                    const startVolume = this.bgMusic.volume;
+                    const endVolume = 0;
+                    const steps = 20;
+                    const stepTime = duration / steps;
+                    const volumeStep = (startVolume - endVolume) / steps;
+                    
+                    let currentStep = 0;
+                    
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const newVolume = startVolume - (volumeStep * currentStep);
+                        
+                        if (currentStep >= steps) {
+                            this.bgMusic.volume = endVolume;
+                            clearInterval(fadeInterval);
+                            resolve();
+                        } else {
+                            this.bgMusic.volume = Math.max(newVolume, endVolume);
+                        }
+                    }, stepTime);
+                });
+            },
+            
+            // 停止音乐
+            async stop() {
+                await this.fadeOut();
+                this.bgMusic.pause();
+            }
+        };
+
+        // 拼图配置
+        const puzzleConfig = {
+            imageSrc: './img/仙境.png',
+            rows: 3,
+            cols: 4,
+            pieceWidth: 120,
+            pieceHeight: 120
+        };
+
+        // DOM 元素
+        const particles = document.getElementById('particles');
+        const hintText = document.getElementById('hint-text');
+        const emotionText = document.getElementById('emotion-text');
+        const completedCount = document.getElementById('completed-count');
+        const puzzleCanvas = document.getElementById('puzzle-canvas');
+        const puzzlePiecesArea = document.getElementById('puzzle-pieces-area');
+
+        // 初始化粒子背景
+        function initParticles() {
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = (Math.random() * 6 + 2) + 'px';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                particles.appendChild(particle);
+            }
+        }
+
+        // 创建拼图碎片
+        function createPuzzlePieces() {
+            console.log('开始创建拼图碎片...');
+            const totalPieces = puzzleConfig.rows * puzzleConfig.cols;
+            console.log(`总共需要创建 ${totalPieces} 个拼图碎片`);
+            
+            // 获取可用的侧边区域
+            const canvasRect = puzzleCanvas.getBoundingClientRect();
+            const leftAreaWidth = canvasRect.left - 20;
+            const rightAreaStart = canvasRect.right + 20;
+            const rightAreaWidth = window.innerWidth - rightAreaStart - 20;
+            
+            for (let i = 0; i < totalPieces; i++) {
+                const row = Math.floor(i / puzzleConfig.cols);
+                const col = i % puzzleConfig.cols;
+                
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece';
+                piece.dataset.piece = i;
+                piece.dataset.correct = i;
+                
+                // 设置背景图片位置
+                piece.style.backgroundImage = `url(${puzzleConfig.imageSrc})`;
+                piece.style.backgroundPosition = `-${col * puzzleConfig.pieceWidth}px -${row * puzzleConfig.pieceHeight}px`;
+                
+
+                
+
+                
+                // 随机选择左侧或右侧区域
+                let x, y;
+                if (Math.random() < 0.5 && leftAreaWidth > puzzleConfig.pieceWidth + 40) {
+                    // 放置在左侧
+                    x = Math.random() * (leftAreaWidth - puzzleConfig.pieceWidth - 20) + 10;
+                } else if (rightAreaWidth > puzzleConfig.pieceWidth + 40) {
+                    // 放置在右侧
+                    x = rightAreaStart + Math.random() * (rightAreaWidth - puzzleConfig.pieceWidth - 20) + 10;
+                } else {
+                    // 如果侧边空间不够，放在底部
+                    x = Math.random() * (window.innerWidth - puzzleConfig.pieceWidth - 40) + 20;
+                }
+                
+                // Y轴位置：在拼图画布下方或侧边的可用高度内
+                const minY = canvasRect.bottom + 20;
+                const maxY = window.innerHeight - puzzleConfig.pieceHeight - 20;
+                y = Math.random() * (maxY - minY) + minY;
+                
+                // 如果Y轴空间不够，放在侧边的整个高度范围内
+                if (y < minY) {
+                    y = Math.random() * (window.innerHeight - puzzleConfig.pieceHeight - 40) + 20;
+                }
+                
+                piece.style.left = x + 'px';
+                piece.style.top = y + 'px';
+                
+
+                
+                // 添加到游戏状态
+                gameState.pieces.push({
+                    element: piece,
+                    correctSlot: i,
+                    currentSlot: null,
+                    placed: false
+                });
+                
+                document.body.appendChild(piece);
+            }
+            
+            console.log(`拼图碎片创建完成，共 ${gameState.pieces.length} 个`);
+        }
+
+        // 打乱拼图碎片位置
+        function shufflePieces() {
+            const canvasRect = puzzleCanvas.getBoundingClientRect();
+            const leftAreaWidth = canvasRect.left - 20;
+            const rightAreaStart = canvasRect.right + 20;
+            const rightAreaWidth = window.innerWidth - rightAreaStart - 20;
+            
+            gameState.pieces.forEach(pieceData => {
+                const piece = pieceData.element;
+                
+                // 重新随机分配到左侧或右侧
+                let x, y;
+                if (Math.random() < 0.5 && leftAreaWidth > puzzleConfig.pieceWidth + 40) {
+                    // 放置在左侧
+                    x = Math.random() * (leftAreaWidth - puzzleConfig.pieceWidth - 20) + 10;
+                } else if (rightAreaWidth > puzzleConfig.pieceWidth + 40) {
+                    // 放置在右侧
+                    x = rightAreaStart + Math.random() * (rightAreaWidth - puzzleConfig.pieceWidth - 20) + 10;
+                } else {
+                    // 如果侧边空间不够，放在底部
+                    x = Math.random() * (window.innerWidth - puzzleConfig.pieceWidth - 40) + 20;
+                }
+                
+                const minY = canvasRect.bottom + 20;
+                const maxY = window.innerHeight - puzzleConfig.pieceHeight - 20;
+                y = Math.random() * (maxY - minY) + minY;
+                
+                if (y < minY) {
+                    y = Math.random() * (window.innerHeight - puzzleConfig.pieceHeight - 40) + 20;
+                }
+                
+                piece.style.left = x + 'px';
+                piece.style.top = y + 'px';
+            });
+        }
+
+        // 获取鼠标/触摸位置
+        function getPointerPosition(event) {
+            const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+            const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+            return { x: clientX, y: clientY };
+        }
+
+        // 检查碎片是否在槽位上方（优化性能）
+        function isOverSlot(piece, slot) {
+            const pieceRect = piece.getBoundingClientRect();
+            const slotRect = slot.getBoundingClientRect();
+            
+            // 使用更精确的重叠检测
+            const overlapThreshold = 0.3; // 30% 重叠即可放置
+            const pieceArea = pieceRect.width * pieceRect.height;
+            
+            const overlapLeft = Math.max(pieceRect.left, slotRect.left);
+            const overlapRight = Math.min(pieceRect.right, slotRect.right);
+            const overlapTop = Math.max(pieceRect.top, slotRect.top);
+            const overlapBottom = Math.min(pieceRect.bottom, slotRect.bottom);
+            
+            if (overlapLeft < overlapRight && overlapTop < overlapBottom) {
+                const overlapArea = (overlapRight - overlapLeft) * (overlapBottom - overlapTop);
+                return (overlapArea / pieceArea) >= overlapThreshold;
+            }
+            
+            return false;
+        }
+
+        // 放置拼图碎片
+        function placePuzzlePiece(piece, slot) {
+            const pieceIndex = parseInt(piece.dataset.piece);
+            const correctSlot = parseInt(piece.dataset.correct);
+            const slotIndex = parseInt(slot.dataset.slot);
+            
+            // 检查是否放置正确
+            if (slotIndex === correctSlot) {
+                // 正确放置 - 移动到槽位
+                piece.style.transition = 'all 0.4s ease';
+                piece.style.position = 'static';
+                piece.style.left = 'auto';
+                piece.style.top = 'auto';
+                piece.style.transform = 'none';
+                piece.classList.add('placed');
+                slot.appendChild(piece);
+                slot.classList.add('filled');
+                
+                // 添加成功放置的特效
+                setTimeout(() => {
+                    piece.style.animation = 'placeSuccess 0.6s ease-out';
+                    setTimeout(() => {
+                        piece.style.animation = '';
+                    }, 600);
+                }, 100);
+                
+                // 更新拼图数据
+                const pieceData = gameState.pieces.find(p => p.element === piece);
+                if (pieceData) {
+                    pieceData.placed = true;
+                    pieceData.currentSlot = slotIndex;
+                }
+                
+                // 更新游戏状态
+                gameState.completedPuzzles++;
+                gameState.puzzleOrder.push(pieceIndex);
+                completedCount.textContent = gameState.completedPuzzles;
+                
+                // 隐藏提示文本
+                if (gameState.completedPuzzles === 1) {
+                    hintText.classList.add('hide');
+                }
+                
+                // 检查是否完成
+                if (gameState.completedPuzzles >= gameState.totalPuzzles) {
+                    setTimeout(() => completeLevel(), 1500);
+                } else {
+                    // 显示进度鼓励
+                    setTimeout(() => showProgressText(), 300);
+                }
+                
+                return true;
+            } else {
+                // 错误放置 - 拒绝归位，只给震动反馈
+                piece.style.animation = 'rejectShake 0.6s ease-in-out';
+                
+                // 添加错误提示效果
+                slot.style.animation = 'slotReject 0.6s ease-in-out';
+                
+                setTimeout(() => {
+                    piece.style.animation = '';
+                    slot.style.animation = '';
+                }, 600);
+                
+                return false;
+            }
+        }
+
+        // 显示进度文本
+        function showProgressText() {
+            const progress = (gameState.completedPuzzles / gameState.totalPuzzles * 100).toFixed(0);
+            const encouragements = [
+                "做得很好！继续加油！",
+                "拼图逐渐成形，爱丽丝看到了希望...",
+                "仙境的画面越来越清晰了！",
+                "距离完成越来越近了！",
+                "美丽的花园即将重现！"
+            ];
+            
+            const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
+            
+            emotionText.innerHTML = `
+                <div style="font-size: 1.3rem; margin-bottom: 10px; color: rgba(173, 216, 230, 0.9);">
+                    进度：${progress}%
+                </div>
+                <div>
+                    ${randomEncouragement}
+                </div>
+            `;
+            emotionText.classList.add('show');
+
+            setTimeout(() => {
+                emotionText.classList.remove('show');
+            }, 2000);
+        }
+
+        // 完成关卡
+        function completeLevel() {
+            gameState.isCompleted = true;
+
+            // 创建完成特效
+            const completionEffect = document.createElement('div');
+            completionEffect.className = 'completion-effect';
+            document.querySelector('.void-space').appendChild(completionEffect);
+
+            // 隐藏预览图片，显示完整拼图效果
+            const preview = document.querySelector('.puzzle-preview');
+            if (preview) {
+                preview.style.opacity = '0';
+            }
+
+            // 为拼图画布添加发光效果
+            puzzleCanvas.style.boxShadow = '0 0 50px rgba(173, 216, 230, 0.8), inset 0 0 30px rgba(255, 255, 255, 0.1)';
+            puzzleCanvas.style.border = '4px solid rgba(173, 216, 230, 0.9)';
+
+            // 延迟显示完成界面
+            setTimeout(() => {
+                showCompletionScreen();
+            }, 2000);
+
+            // 移除完成特效
+            setTimeout(() => {
+                if (completionEffect.parentNode) {
+                    completionEffect.remove();
+                }
+            }, 3000);
+        }
+
+        // 显示完成界面
+        function showCompletionScreen() {
+            // 解锁仙境回响成就
+            if (window.achievementSystem) {
+                setTimeout(() => {
+                    window.achievementSystem.unlockAchievement('wonderland_echo');
+                }, 1000);
+            }
+
+            // 创建完成界面HTML
+            const completionHTML = `
+                <div class="completion-overlay" id="completion-overlay">
+                    <div class="completion-content">
+                        <div class="completion-title">🎉 拼图完成！</div>
+                        <div class="completion-text">
+                            爱丽丝成功重组了仙境花园的美丽画面。<br>
+                            通过拼接这些碎片，她理解了破碎也能重新组合成美好。<br>
+                            即使是分离的碎片，也蕴含着完整的希望与力量。
+                        </div>
+                        <div class="completion-reward">
+                            ✨ 获得道具：【仙境回响】
+                        </div>
+                        <div class="completion-text" style="font-size: 0.95rem; color: #666; margin-bottom: 30px;">
+                            — 隐藏关卡：仙境的悲歌 完成 —
+                        </div>
+                        <button class="return-button" id="return-button">
+                            带着仙境回响返回泪水之池
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 添加到页面
+            document.body.insertAdjacentHTML('beforeend', completionHTML);
+            
+            // 获取元素并添加事件监听
+            const overlay = document.getElementById('completion-overlay');
+            const returnBtn = document.getElementById('return-button');
+            
+            // 显示界面
+            setTimeout(() => {
+                overlay.classList.add('show');
+            }, 100);
+
+            // 添加返回事件
+            returnBtn.addEventListener('click', returnToMainStory);
+        }
+
+        // 返回主故事
+        function returnToMainStory() {
+            console.log('开始返回主故事...');
+            
+            // 淡出音乐
+            audioManager.stop();
+            
+            // 设置localStorage标记，告诉第二章节要跳转到return_and_continue场景
+            localStorage.setItem('alice_return_from_hidden', 'true');
+            localStorage.setItem('alice_hidden_completed', 'true');
+            
+            console.log('已设置localStorage标记');
+            
+            // 隐藏完成界面
+            const overlay = document.getElementById('completion-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+            }
+
+            // 延迟后跳转回第二章节，同时添加URL参数作为备用方案
+            setTimeout(() => {
+                console.log('正在跳转到第二章节...');
+                window.location.href = '第二章节.html?return_from_hidden=true';
+            }, 1500); // 增加延迟以确保音乐淡出完成
+        }
+
+        // 初始化拖拽系统
+        function initDragSystem() {
+            // 为所有拼图碎片添加事件监听
+            gameState.pieces.forEach(pieceData => {
+                const piece = pieceData.element;
+                
+                // 鼠标事件
+                piece.addEventListener('mousedown', startDrag);
+                
+                // 触摸事件
+                piece.addEventListener('touchstart', startDrag, { passive: false });
+            });
+
+            // 全局事件监听
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+            
+            // 防止上下文菜单干扰拖拽
+            document.addEventListener('contextmenu', (e) => {
+                if (gameState.draggedPiece) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // 开始拖拽
+        function startDrag(event) {
+            if (gameState.isCompleted) return;
+            
+            const piece = event.target.closest('.puzzle-piece');
+            if (!piece || piece.classList.contains('placed')) return;
+            
+            event.preventDefault();
+            
+            gameState.draggedPiece = piece;
+            piece.classList.add('dragging');
+            
+            const pointer = getPointerPosition(event);
+            const rect = piece.getBoundingClientRect();
+            
+            gameState.dragOffset = {
+                x: pointer.x - rect.left,
+                y: pointer.y - rect.top
+            };
+            
+            // 设置拖拽样式
+            piece.style.zIndex = '1000';
+            piece.style.transition = 'none';
+            piece.style.cursor = 'grabbing';
+            
+            // 阻止文本选择
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+        }
+
+        // 拖拽中
+        function drag(event) {
+            if (!gameState.draggedPiece) return;
+            
+            const pointer = getPointerPosition(event);
+            const piece = gameState.draggedPiece;
+            
+            // 计算新位置
+            const newX = pointer.x - gameState.dragOffset.x;
+            const newY = pointer.y - gameState.dragOffset.y;
+            
+            // 直接设置位置
+            piece.style.left = newX + 'px';
+            piece.style.top = newY + 'px';
+            
+            // 检查是否在槽位上方
+            document.querySelectorAll('.puzzle-slot').forEach(slot => {
+                if (isOverSlot(piece, slot) && !slot.classList.contains('filled')) {
+                    slot.classList.add('highlight');
+                } else {
+                    slot.classList.remove('highlight');
+                }
+            });
+        }
+
+        // 结束拖拽
+        function endDrag(event) {
+            if (!gameState.draggedPiece) return;
+            
+            const piece = gameState.draggedPiece;
+            piece.classList.remove('dragging');
+            
+            // 恢复页面状态
+            document.body.style.userSelect = '';
+            document.body.style.webkitUserSelect = '';
+            piece.style.cursor = '';
+            piece.style.zIndex = '50';
+            
+            // 检查是否放在槽位上
+            let placed = false;
+            
+            document.querySelectorAll('.puzzle-slot').forEach(slot => {
+                slot.classList.remove('highlight');
+                
+                if (isOverSlot(piece, slot) && !slot.classList.contains('filled')) {
+                    placed = placePuzzlePiece(piece, slot);
+                }
+            });
+            
+            // 如果没有正确放置，恢复过渡效果
+            if (!placed) {
+                piece.style.transition = 'all 0.3s ease';
+            }
+            
+            gameState.draggedPiece = null;
+        }
+
+        // 动画样式定义
+        const animationKeyframes = `
+            @keyframes wrongPlace {
+                0%, 100% { border-color: rgba(173, 216, 230, 0.6); }
+                50% { border-color: rgba(255, 100, 100, 0.8); }
+            }
+            
+            @keyframes placeSuccess {
+                0% { box-shadow: 0 0 20px rgba(173, 216, 230, 0.8); transform: scale(1); }
+                50% { box-shadow: 0 0 40px rgba(173, 216, 230, 1); transform: scale(1.02); }
+                100% { box-shadow: none; transform: scale(1); }
+            }
+        `;
+        
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = animationKeyframes;
+        document.head.appendChild(style);
+
+
+
+        // 事件监听
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('页面加载完成，开始初始化...');
+            
+            // 初始化音频系统
+            audioManager.init();
+            
+            initParticles();
+            
+            // 等待图片加载完成后创建拼图
+            const img = new Image();
+            img.onload = () => {
+                console.log('图片加载成功:', puzzleConfig.imageSrc);
+                console.log('图片尺寸:', img.width, 'x', img.height);
+                createPuzzlePieces();
+                shufflePieces();
+                initDragSystem();
+            };
+            img.onerror = () => {
+                console.error('图片加载失败:', puzzleConfig.imageSrc);
+                console.log('将使用备用方案创建拼图碎片...');
+                // 即使图片加载失败，也创建拼图碎片进行调试
+                createPuzzlePieces();
+                initDragSystem();
+            };
+            console.log('开始加载图片:', puzzleConfig.imageSrc);
+            img.src = puzzleConfig.imageSrc;
+        });
+
+        // 添加环境音效模拟（可视化）
+        setInterval(() => {
+            document.querySelectorAll('.music-bar').forEach((bar, index) => {
+                const height = Math.random() * 25 + 10;
+                bar.style.height = height + 'px';
+            });
+        }, 500);
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // 返回主菜单或上一级
+                if (confirm('确定要离开隐藏关卡吗？')) {
+                    window.history.back();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

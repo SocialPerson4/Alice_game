@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇域梦幻漫游录：角色密语卡牌</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+</head>
+<body>
+    <button id="back-to-index-btn" style="position:fixed;top:24px;right:32px;z-index:9999;padding:10px 22px;font-size:1.1rem;background:rgba(35,41,70,0.92);color:#fff;border-radius:8px;border:none;box-shadow:0 2px 8px #0006;cursor:pointer;">返回</button>
+<div class="container">
+    <div class="main-character-card">
+        <div class="main-content-area">
+            <div class="card-background-animation" id="cardBackground"></div>
+
+            <img src="img/alice.png" alt="爱丽丝主视觉" class="character-main-visual" id="characterMainVisual">
+
+            <div class="right-panel-wrapper">
+                <div class="horizontal-avatar-bar">
+                    <div class="char-avatar active" data-char="alice"><img src="img/1.png" alt="Alice Avatar"></div>
+                    <div class="char-avatar" data-char="mad_hatter"><img src="img/2.png" alt="Mad Hatter Avatar"></div>
+                    <div class="char-avatar" data-char="queen_of_hearts"><img src="img/3.png" alt="Queen of Hearts Avatar"></div>
+                    <div class="char-avatar" data-char="cheshire_cat"><img src="img/4.png" alt="Cheshire Cat Avatar"></div>
+                    <div class="char-avatar" data-char="march_hare"><img src="img/5.png" alt="March Hare Avatar"></div>
+                </div>
+
+                <p class="card-cipher" id="characterCipher">“我不知道我是谁了，但我知道我不是以前的我了。”</p>
+                <h1 class="card-name" id="characterName">爱丽丝 (Alice)</h1>
+                <p class="card-description" id="characterDescription">
+                    一个好奇心旺盛、充满想象力的女孩，追逐着一只怀表兔子，意外坠入了奇妙的地下世界。她在这里经历了各种荒诞离奇的冒险，逐渐认识到自我与这个世界的不同。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+<script>
+    document.getElementById('back-to-index-btn').onclick = function() {
+        // 检查是否在iframe中
+        if (window.parent !== window.self) {
+            window.parent.postMessage({ type: 'returnToGame' }, '*');
+        } else {
+            // 直接返回主页面
+            window.location.href = '../index.html';
+        }
+    };
+</script>
+</body>
+</html>

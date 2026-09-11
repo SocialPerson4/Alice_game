@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱丽丝漫游仙境 - 视觉小说</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 特效相关库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-attractors@0.1.6/build/matter-attractors.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-wrap@1.1.1/build/matter-wrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: transparent;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 主游戏容器 */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            overflow: hidden; /* 防止溢出 */
+        }
+
+        /* 背景图片 */
+        #background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+            z-index: 1; /* 背景层 */
+        }
+
+        /* 角色立绘 */
+        .character {
+            position: absolute;
+            bottom: 0;
+            height: 80vh;
+            max-width: 50vw; /* 限制最大宽度 */
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更流畅的缓动 */
+            opacity: 0;
+            transform: translateX(-100px);
+            z-index: 10; /* 角色层 */
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3)); /* 阴影效果 */
+        }
+
+        .character.left {
+            left: 10%;
+        }
+
+        .character.center {
+            left: 50%;
+            transform: translateX(-50%) translateX(-100px);
+        }
+
+        .character.right {
+            right: 10%;
+            transform: translateX(100px);
+        }
+
+        .character.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .character.center.show {
+            transform: translateX(-50%);
+        }
+
+        /* 对话框 */
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更流畅的缓动 */
+            z-index: 20; /* 对话框层 */
+            border: 2px solid rgba(138, 43, 226, 0.2); /* 边框装饰 */
+        }
+
+        #dialog-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 角色名称 */
+        #character-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #8a2be2;
+            margin-bottom: 10px;
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.3);
+            transition: color 0.3s ease; /* 颜色过渡 */
+        }
+
+        /* 对话文本 */
+        #dialog-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+            min-height: 60px;
+            transition: opacity 0.3s ease; /* 文本过渡 */
+        }
+
+        /* 打字机效果 */
+        .typewriter-text {
+            overflow: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .typewriter-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: #8a2be2;
+            margin-left: 2px;
+            animation: blink-cursor 1s infinite;
+        }
+
+        @keyframes blink-cursor {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* 文字逐个显示动画 */
+        .char-appear {
+            opacity: 0;
+            animation: charFadeIn 0.1s ease-in forwards;
+        }
+
+        @keyframes charFadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+
+        /* 选择按钮 */
+        #choices {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 流畅的缓动 */
+            z-index: 25; /* 选择按钮层 */
+        }
+
+        .choice-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 流畅的缓动 */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            min-width: 300px;
+            text-align: center;
+            position: relative; /* 为波纹效果准备 */
+            overflow: hidden; /* 隐藏溢出的波纹 */
+            transform: translateY(20px); /* 初始位置 */
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            filter: brightness(1.1); /* 亮度增强 */
+        }
+
+        .choice-btn:active {
+            transform: translateY(0px);
+            transition: transform 0.1s ease; /* 快速按下效果 */
+        }
+
+        /* 选择按钮波纹特效 */
+        .choice-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            animation: choice-ripple-animation 0.8s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes choice-ripple-animation {
+            from {
+                transform: scale(0);
+                opacity: 0.8;
+            }
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        /* 控制按钮 */
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 标题界面 */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            overflow: hidden;
+        }
+
+        /* 第一章背景图片 */
+        #chapter-one-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('../img/第一章.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            z-index: 1;
+        }
+
+        #chapter-one-bg.show {
+            opacity: 1;
+        }
+
+
+
+        /* 标题动画容器 */
+        .title-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        #title-screen h1 {
+            font-size: 4rem;
+            color: white;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: scale(0.3) translateY(-50px);
+            animation: titleEntrance 3s ease-out forwards, titleGlow 2s ease-in-out infinite alternate 3s;
+        }
+
+        @keyframes titleEntrance {
+            0% {
+                opacity: 0;
+                transform: scale(0.3) translateY(-50px) rotateX(45deg);
+            }
+            30% {
+                opacity: 0.7;
+                transform: scale(1.2) translateY(20px) rotateX(0deg);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(0.9) translateY(-10px);
+            }
+            70% {
+                transform: scale(1.05) translateY(5px);
+            }
+            85% {
+                transform: scale(0.98) translateY(-2px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0) rotateX(0deg);
+            }
+        }
+
+        @keyframes titleGlow {
+            from { 
+                text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 105, 180, 0.3); 
+            }
+            to { 
+                text-shadow: 0 0 30px rgba(255, 105, 180, 0.8), 0 0 60px rgba(255, 69, 185, 0.6); 
+            }
+        }
+
+        /* 副标题 */
+        .subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: subtitleSlideIn 2s ease-out 1.5s forwards;
+        }
+
+        @keyframes subtitleSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transform: translateY(50px) scale(0.8);
+            animation: buttonSlideIn 2s ease-out 2.5s forwards;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes buttonSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateY(50px) scale(0.8);
+            }
+            60% {
+                opacity: 1;
+                transform: translateY(-10px) scale(1.05);
+            }
+            80% {
+                transform: translateY(5px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        #start-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 3s ease-in-out infinite 3s;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+
+        @keyframes startBtnRipple {
+            from {
+                transform: scale(0);
+                opacity: 1;
+            }
+            to {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        #start-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        #start-btn:active {
+            transform: translateY(-2px) scale(1.02);
+            transition: all 0.1s ease;
+        }
+
+        /* 装饰元素 */
+        .decoration-circle {
+            position: absolute;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: circleRotate 15s linear infinite;
+        }
+
+        .circle-1 {
+            width: 200px;
+            height: 200px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .circle-2 {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 15%;
+            animation-delay: -5s;
+        }
+
+        .circle-3 {
+            width: 100px;
+            height: 100px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        @keyframes circleRotate {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+
+        /* 响应式设计 - 标题界面 */
+        @media (max-width: 768px) {
+            #title-screen h1 {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+                margin-bottom: 30px;
+            }
+            
+            #start-btn {
+                padding: 15px 30px;
+                font-size: 1.2rem;
+            }
+            
+            .decoration-circle {
+                opacity: 0.5;
+            }
+            
+            .circle-1 {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .circle-2 {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .circle-3 {
+                width: 80px;
+                height: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #title-screen h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 0.9rem;
+                padding: 0 20px;
+            }
+            
+            #start-btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+            }
+            
+            .decoration-circle {
+                display: none;
+            }
+            
+            .particle {
+                width: 3px;
+                height: 3px;
+            }
+        }
+
+        /* 淡入淡出效果 */
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 文本打字效果 */
+        .typing {
+            overflow: hidden;
+            border-right: 2px solid #8a2be2;
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #8a2be2; }
+        }
+
+        /* 回溯弹窗样式 */
+        #backtrack-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            backdrop-filter: blur(10px);
+        }
+
+        #backtrack-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 95%;
+            max-width: 900px;
+            max-height: 85%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #backtrack-modal-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #8a2be2;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px rgba(138, 43, 226, 0.3);
+        }
+
+        #backtrack-tree-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(138, 43, 226, 0.2);
+        }
+
+        .tree-level {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .tree-node {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border-radius: 25px;
+            padding: 12px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 2;
+            min-width: 120px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .tree-node:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(138, 43, 226, 0.5);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .tree-node.current {
+            background: linear-gradient(135deg, #00eaff, #0066ff);
+            box-shadow: 0 0 20px rgba(0, 234, 255, 0.6);
+            animation: currentNodeGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes currentNodeGlow {
+            from { box-shadow: 0 0 20px rgba(0, 234, 255, 0.6); }
+            to { box-shadow: 0 0 30px rgba(0, 234, 255, 0.9); }
+        }
+
+        .tree-connector {
+            position: absolute;
+            background: linear-gradient(45deg, #ff69b4, #8a2be2);
+            z-index: 1;
+        }
+
+        .tree-connector-horizontal {
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .tree-connector-vertical {
+            width: 3px;
+            border-radius: 2px;
+        }
+
+        .tree-branch {
+            display: flex;
+            flex-direction: column;
+            margin-left: 50px;
+            position: relative;
+        }
+
+        .tree-branch::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #ff69b4, #8a2be2);
+            border-radius: 1px;
+        }
+
+        .tree-choice-group {
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .tree-choice-group::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            width: 20px;
+            height: 2px;
+            background: linear-gradient(to right, #ff69b4, #8a2be2);
+            border-radius: 1px;
+        }
+
+        .tree-node-info {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-top: 5px;
+            font-size: 0.85rem;
+            color: #666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 3px solid #8a2be2;
+        }
+
+        .tree-start-node {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            font-size: 1.1rem;
+            padding: 15px 25px;
+        }
+
+        .tree-current-indicator {
+            position: absolute;
+            right: -10px;
+            top: -10px;
+            background: #00eaff;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 234, 255, 0.5);
+        }
+
+        #backtrack-modal-footer {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        .backtrack-modal-btn {
+            background: linear-gradient(135deg, #ff69b4, #8a2be2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .backtrack-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+
+
+        /* 粒子特效样式 */
+        #effect-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* 特效相关样式 */
+        #wrapper-canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 5;
+            pointer-events: auto;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(rgba(85, 85, 85, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(85, 85, 85, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+            animation: pulse 4s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 0.3; }
+        }
+
+        .dg.ac {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 300px !important;
+            max-width: 300px !important;
+            z-index: 1000;
+            opacity: 0.8;
+        }
+
+        .dg .dg.main {
+            width: 300px !important;
+        }
+
+        .dg .close-button {
+            width: 300px !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 网格背景特效 -->
+    <div class="grid-overlay"></div>
+    
+    <!-- 标题界面 -->
+    <div id="title-screen">
+        <!-- 第一章背景图片 -->
+        <div id="chapter-one-bg"></div>
+        
+        <!-- 装饰圆圈 -->
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+        <div class="decoration-circle circle-3"></div>
+        
+        <!-- 标题内容 -->
+        <div class="title-container">
+            <h1>爱丽丝漫游仙境</h1>
+            <div class="subtitle">✨ 一段奇幻的冒险即将开始... ✨</div>
+            <button id="start-btn">🌟 开始冒险 🌟</button>
+        </div>
+    </div>
+
+    <!-- 特效画布 -->
+    <div id="wrapper-canvas"></div>
+
+    <!-- 主游戏容器 -->
+    <div id="game-container">
+        <!-- 背景 -->
+        <div id="background"></div>
+        
+        <!-- 角色立绘 -->
+        <img id="character-left" class="character left" src="" alt="">
+        <img id="character-center" class="character center" src="" alt="">
+        <img id="character-right" class="character right" src="" alt="">
+        
+        <!-- 选择按钮 -->
+        <div id="choices"></div>
+        
+        <!-- 对话框 -->
+        <div id="dialog-box">
+            <div id="character-name"></div>
+            <div id="dialog-text"></div>
+        </div>
+        
+        <!-- 控制按钮 -->
+        <div id="controls">
+            <button class="control-btn" id="auto-btn">自动</button>
+            <button class="control-btn" id="skip-btn">快进</button>
+            <button class="control-btn" id="audio-btn" title="音频开关">🔊 音频</button>
+            <button class="control-btn" id="backtrack-btn" title="回到上一个分支">⟲ 回溯</button>
+        </div>
+    </div>
+
+    <!-- 回溯弹窗 -->
+    <div id="backtrack-modal" style="display: none;">
+        <div id="backtrack-modal-content">
+            <h2 id="backtrack-modal-title">回溯历史</h2>
+            <div id="backtrack-tree-container"></div>
+            <div id="backtrack-modal-footer">
+                <button class="backtrack-modal-btn" id="backtrack-modal-cancel">取消</button>
+                <button class="backtrack-modal-btn" id="backtrack-modal-confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameState = {
+            currentScene: 0,
+            currentDialog: 0,
+            autoMode: false,
+            skipMode: false,
+            historyStack: [], // 新增：记录分支历史
+            isTransitioning: false, // 新增：防止快速点击
+            preloadedImages: new Map(), // 新增：图片缓存
+            animationFrameId: null, // 新增：动画帧ID
+            typewriterSpeed: 50, // 打字机速度（毫秒）
+            isTyping: false, // 是否正在打字
+            typewriterTimeout: null, // 打字机定时器
+            currentAudio: null, // 新增：当前播放的音频
+            audioEnabled: true // 新增：音频开关
+        };
+
+        // 音频管理器
+        class AudioManager {
+            constructor() {
+                this.audios = new Map();
+                this.currentAudio = null;
+                this.volume = 0.7;
+                this.init();
+            }
+
+            init() {
+                // 预加载所有音频文件
+                const audioSources = {
+                    'garden': '../music/第一幕采样/1.花园.mp3',
+                    'rabbit': '../music/第一幕采样/2.白兔.mp3',
+                    'chase': '../music/第一幕采样/3.追逐.mp3',
+                    'wonderland': '../music/第一幕采样/6.仙境.mp3'
+                };
+
+                Object.entries(audioSources).forEach(([key, src]) => {
+                    const audio = new Audio(src);
+                    audio.volume = this.volume;
+                    audio.preload = 'auto';
+                    
+                    // 错误处理
+                    audio.onerror = () => {
+                        console.warn(`Failed to load audio: ${src}`);
+                    };
+                    
+                    this.audios.set(key, audio);
+                });
+            }
+
+            play(key, loop = false) {
+                if (!gameState.audioEnabled) return;
+                
+                const audio = this.audios.get(key);
+                if (!audio) {
+                    console.warn(`Audio not found: ${key}`);
+                    return;
+                }
+
+                // 停止当前音频
+                this.stop();
+
+                audio.loop = loop;
+                audio.currentTime = 0;
+                
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        this.currentAudio = audio;
+                        console.log(`Playing audio: ${key}${loop ? ' (loop)' : ''}`);
+                    }).catch(error => {
+                        console.warn(`Failed to play audio: ${key}`, error);
+                    });
+                }
+            }
+
+            stop() {
+                if (this.currentAudio) {
+                    this.currentAudio.pause();
+                    this.currentAudio.currentTime = 0;
+                    this.currentAudio = null;
+                }
+            }
+
+            fadeOut(duration = 1000) {
+                if (!this.currentAudio) return;
+                
+                const audio = this.currentAudio;
+                const startVolume = audio.volume;
+                const fadeStep = startVolume / (duration / 50);
+                
+                const fadeInterval = setInterval(() => {
+                    if (audio.volume > fadeStep) {
+                        audio.volume -= fadeStep;
+                    } else {
+                        audio.volume = 0;
+                        audio.pause();
+                        audio.currentTime = 0;
+                        clearInterval(fadeInterval);
+                        this.currentAudio = null;
+                    }
+                }, 50);
+            }
+
+            setVolume(volume) {
+                this.volume = Math.max(0, Math.min(1, volume));
+                this.audios.forEach(audio => {
+                    audio.volume = this.volume;
+                });
+            }
+        }
+
+        // 创建音频管理器实例
+        const audioManager = new AudioManager();
+
+        // 检查并播放对话相关的音频
+        function checkAndPlayDialogAudio(sceneIndex, dialogIndex) {
+            const scene = gameData.scenes[sceneIndex];
+            if (!scene) return;
+
+            // 白兔出现时播放白兔音乐（957行对应：opening场景第3个对话）
+            if (scene.id === 'opening' && dialogIndex === 2) {
+                audioManager.play('rabbit', false); // 播放一次即结束
+            }
+        }
+
+        // 检查并播放选择相关的音频
+        function checkAndPlayChoiceAudio(choice) {
+            // 玩家选择"跟着白兔跑"时播放追逐音乐（970行对应）
+            if (choice.text === '跟着白兔跑' && choice.nextScene === 'rabbit_chase') {
+                audioManager.play('chase', true); // 循环播放
+            }
+        }
+
+        // 检查并播放场景相关的音频
+        function checkAndPlaySceneAudio(scene) {
+            // 进入仙境后播放仙境音乐（1014行对应：falling场景）
+            if (scene.id === 'falling') {
+                audioManager.play('wonderland', true); // 循环播放
+            }
+        }
+
+        // 游戏数据 - 爱丽丝漫游仙境剧情
+        const gameData = {
+            scenes: [
+                {
+                    id: "opening",
+                    background: "./img/开场初始背景.jpg",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "在一个阳光明媚的下午，爱丽丝正坐在花园里，感到有些无聊...",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/全身.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "今天真是无聊的一天呢...要是能发生什么有趣的事情就好了。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "就在这时，一只穿着马甲的白兔匆匆跑过...",
+                            characters: [
+                                { position: "right", image: "./img/人物素材/1111人物/白兔抠图.png", name: "白兔" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "白兔",
+                            text: "哦天哪！我要迟到了！要迟到了！",
+                            characters: [
+                                { position: "right", image: "./img/人物素材/1111人物/白兔抠图.png", name: "白兔" }
+                            ],
+                            choices: [
+                                { text: "跟着白兔跑", nextScene: "rabbit_chase" },
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "rabbit_chase",
+                    background: "./img/背景2.0.png",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "等等！你要去哪里？",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝追着白兔跑进了森林深处...",
+                            characters: [
+                                { position: "right", image: "./img/人物素材/1111人物/白兔抠图.png", name: "白兔" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "突然，白兔消失在一个奇怪的洞口前。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "这个洞看起来好深啊...我应该跳下去吗？",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "勇敢地跳下去", nextScene: "./掉入兔子洞/hole.html" },
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "falling",
+                    background: "./img/仙境入口.jpg",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "哇啊啊啊！我在往下掉！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/跳起来的.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在黑暗中不断下落，周围飘过各种奇怪的物品...",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "这里真是太奇怪了！我好像在下落很久了...",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "终于，爱丽丝看到了地面...",
+                            characters: [],
+                            choices: [
+                                { text: "继续故事", nextScene: "wonderland" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "wonderland",
+                    background: "./img/仙境入口.jpg",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "哇！这里真是太美了！",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝来到了仙境，这里的一切都充满了魔法...",
+                            characters: [],
+                            choices: [
+                                { text: "探索周围", nextScene: "explore" },
+                                { text: "继续深入仙境", nextScene: "chapter_transition" }
+                            ]
+                        },
+                    ]
+                },
+                {
+                    id: "chapter_transition",
+                    background: "./img/仙境入口.jpg",
+                    dialogs: [
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在仙境中继续探索，突然发现前方有一道神秘的光芒...",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/困惑.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "爱丽丝",
+                            text: "那道光好奇怪...我感觉它在召唤我。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/坚定.png", name: "爱丽丝" }
+                            ],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝被光芒吸引，不知不觉走向了它。突然，周围的景色开始变化...",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "旁白",
+                            text: "第一章完结。爱丽丝即将面临新的挑战和考验...",
+                            characters: [],
+                            choices: [
+                                { text: "进入第二章：药水与泪池的考验", nextScene: "第二章节.html" },
+                                { text: "重新开始第一章", nextScene: "opening" }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    id: "explore",
+                    background: "./img/仙境入口.jpg",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "我决定探索一下周围的环境。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/开心.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "继续探索", nextScene: "explore_continue" },
+                                { text: "返回", nextScene: "wonderland" }
+                            ]
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝在仙境中漫步，因为初来乍到，她走着走着就走回了原地",
+                            characters: [],
+                            choices: [
+                                { text: "继续深入仙境", nextScene: "chapter_transition" }
+                            ]
+                        },
+
+                    ]
+                },
+                {
+                    id: "explore_continue",
+                    background: "./img/仙境入口.jpg",
+                    dialogs: [
+                        {
+                            character: "爱丽丝",
+                            text: "我决定继续探索。",
+                            characters: [
+                                { position: "left", image: "./img/人物素材/1111人物/叉腰.png", name: "爱丽丝" }
+                            ],
+                            choices: [
+                                { text: "继续探索", nextScene: "explore_continue" },
+                                { text: "返回", nextScene: "wonderland" }
+                            ]
+                        },
+                        {
+                            character: "旁白",
+                            text: "爱丽丝继续在仙境中探索，发现了更多奇妙的事物。",
+                            characters: [],
+                            choices: []
+                        },
+                        {
+                            character: "红皇后",
+                            text: "你是谁？竟敢闯入我的领地！",
+                            characters: [
+                                { position: "right", image: "./img/人物素材/1111人物/红皇后1.png", name: "红皇后" }
+                            ],
+                            choices: []
+                        }
+                    ]
+                },
+            ]
+        };
+
+        // DOM 元素
+        const titleScreen = document.getElementById('title-screen');
+        const startBtn = document.getElementById('start-btn');
+        const gameContainer = document.getElementById('game-container');
+        const background = document.getElementById('background');
+        const dialogBox = document.getElementById('dialog-box');
+        const characterName = document.getElementById('character-name');
+        const dialogText = document.getElementById('dialog-text');
+        const choices = document.getElementById('choices');
+        const autoBtn = document.getElementById('auto-btn');
+        const skipBtn = document.getElementById('skip-btn');
+        const audioBtn = document.getElementById('audio-btn'); // 新增：音频按钮
+        const backtrackBtn = document.getElementById('backtrack-btn'); // 新增：回溯按钮
+        const backtrackModal = document.getElementById('backtrack-modal'); // 新增：回溯弹窗
+        const backtrackModalContent = document.getElementById('backtrack-modal-content'); // 新增：回溯弹窗内容
+        const backtrackModalTitle = document.getElementById('backtrack-modal-title'); // 新增：回溯弹窗标题
+        const backtrackTreeContainer = document.getElementById('backtrack-tree-container'); // 新增：回溯树容器
+        const backtrackModalCancelBtn = document.getElementById('backtrack-modal-cancel'); // 新增：回溯弹窗取消按钮
+        const backtrackModalConfirmBtn = document.getElementById('backtrack-modal-confirm'); // 新增：回溯弹窗确定按钮
+
+        // 角色元素
+        const characterLeft = document.getElementById('character-left');
+        const characterCenter = document.getElementById('character-center');
+        const characterRight = document.getElementById('character-right');
+
+        // 图片预加载管理器
+        class ImagePreloader {
+            constructor() {
+                this.cache = new Map();
+                this.loading = new Set();
+            }
+
+            async preload(src) {
+                if (this.cache.has(src)) {
+                    return this.cache.get(src);
+                }
+
+                if (this.loading.has(src)) {
+                    // 如果正在加载，等待加载完成
+                    return new Promise((resolve) => {
+                        const checkLoad = () => {
+                            if (this.cache.has(src)) {
+                                resolve(this.cache.get(src));
+                            } else {
+                                setTimeout(checkLoad, 10);
+                            }
+                        };
+                        checkLoad();
+                    });
+                }
+
+                this.loading.add(src);
+                
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        this.cache.set(src, img);
+                        this.loading.delete(src);
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        this.loading.delete(src);
+                        console.warn(`Failed to load image: ${src}`);
+                        reject(new Error(`Failed to load image: ${src}`));
+                    };
+                    img.src = src;
+                });
+            }
+
+            preloadBatch(sources) {
+                return Promise.all(sources.map(src => this.preload(src).catch(err => {
+                    console.warn(`Batch preload failed for ${src}:`, err);
+                    return null;
+                })));
+            }
+        }
+
+        const imagePreloader = new ImagePreloader();
+
+        // 完整特效系统 - 来自特效.html
+        var canvas = $("#wrapper-canvas").get(0);
+        var dimensions = {
+            width: $(window).width(),
+            height: $(window).height()
+        };
+
+        Matter.use('matter-attractors');
+        Matter.use('matter-wrap');
+
+        var config = {
+            numShapes: 15,
+            minSize: 3,
+            maxSize: 8,
+            attractionStrength: 2e-6,
+            shapeColor: '#fff',
+            maxSides: 6,
+            minSides: 3,
+            frictionAir: 0.05,
+            reset: function() {
+                resetWorld();
+            }
+        };
+
+        var vibrantColors = [
+            '#ff6b6b',
+            '#4ecdc4',
+            '#45b7d1',
+            '#f7b731',
+            '#ff9ff3',
+            '#54a0ff',
+            '#5f27cd',
+            '#00d2d3',
+            '#ff9f43',
+            '#10ac84'
+        ];
+
+        var engine, runner, render, world, attractiveBody;
+
+        function createWorld() {
+            engine = Matter.Engine.create();
+            engine.world.gravity.scale = 0;
+
+            render = Matter.Render.create({
+                element: canvas,
+                engine: engine,
+                options: {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    wireframes: false,
+                    background: 'transparent'
+                }
+            });
+
+            runner = Matter.Runner.create();
+            world = engine.world;
+
+            attractiveBody = Matter.Bodies.circle(
+                render.options.width / 2,
+                render.options.height / 2,
+                Math.min(dimensions.width, dimensions.height) / 36,
+                {
+                    isStatic: true,
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: 'transparent',
+                        lineWidth: 0
+                    },
+                    plugin: {
+                        attractors: [
+                            function(bodyA, bodyB) {
+                                return {
+                                    x: (bodyA.position.x - bodyB.position.x) * config.attractionStrength,
+                                    y: (bodyA.position.y - bodyB.position.y) * config.attractionStrength,
+                                };
+                            }
+                        ]
+                    }
+                }
+            );
+            Matter.World.add(world, attractiveBody);
+
+            addShapes();
+
+            var mouse = Matter.Mouse.create(render.canvas);
+            Matter.Events.on(engine, 'afterUpdate', function() {
+                if (!mouse.position.x) return;
+                Matter.Body.translate(attractiveBody, {
+                    x: (mouse.position.x - attractiveBody.position.x) * 0.12,
+                    y: (mouse.position.y - attractiveBody.position.y) * 0.12
+                });
+            });
+
+            Matter.Runner.run(runner, engine);
+            Matter.Render.run(render);
+
+            // 👇 Interaction pression / rebond
+            let isPressed = false;
+            let pressStartTime = 0;
+            const originalRadius = attractiveBody.circleRadius;
+
+            render.canvas.addEventListener('mousedown', (event) => {
+                isPressed = true;
+                pressStartTime = Date.now();
+                Matter.Body.scale(attractiveBody, 0.5, 0.5);
+                
+                // 在点击位置添加爆发效果
+                createClickExplosion(event.clientX, event.clientY);
+            });
+
+            render.canvas.addEventListener('mouseup', () => {
+                if (!isPressed) return;
+                isPressed = false;
+
+                const pressDuration = Date.now() - pressStartTime;
+                const speedFactor = Math.min(2, Math.max(0.5, 1000 / pressDuration));
+
+                anime({
+                    targets: { radius: attractiveBody.circleRadius },
+                    radius: originalRadius,
+                    duration: 1000 / speedFactor,
+                    easing: 'easeOutElastic',
+                    update: function(anim) {
+                        const current = attractiveBody.circleRadius;
+                        const target = anim.animations[0].currentValue;
+                        const scale = target / current;
+                        Matter.Body.scale(attractiveBody, scale, scale);
+                    }
+                });
+            });
+
+            return { engine, runner, render };
+        }
+
+        function addShapes() {
+            for (var i = 0; i < config.numShapes; i++) {
+                let x = Matter.Common.random(0, render.options.width);
+                let y = Matter.Common.random(0, render.options.height);
+                let s = Matter.Common.random(config.minSize, config.maxSize);
+                let sides = Math.floor(Matter.Common.random(config.minSides, config.maxSides + 1));
+
+                var shape = Matter.Bodies.polygon(x, y, sides, s, {
+                    mass: s / 20,
+                    friction: 0,
+                    frictionAir: config.frictionAir,
+                    render: {
+                        fillStyle: vibrantColors[Math.floor(Math.random() * vibrantColors.length)],
+                        strokeStyle: '#fff',
+                        lineWidth: 1
+                    },
+                    plugin: {
+                        wrap: {
+                            min: { x: 0, y: 0 },
+                            max: { x: render.options.width, y: render.options.height }
+                        }
+                    }
+                });
+
+                Matter.World.add(world, shape);
+            }
+        }
+
+        function resetWorld() {
+            Matter.World.clear(world, false);
+            Matter.Engine.clear(engine);
+            Matter.World.add(world, attractiveBody);
+            addShapes();
+        }
+
+        function createClickExplosion(x, y) {
+            for (let i = 0; i < 8; i++) {
+                let angle = (Math.PI * 2 * i) / 8;
+                let distance = 20 + Math.random() * 30;
+                let particleX = x + Math.cos(angle) * distance;
+                let particleY = y + Math.sin(angle) * distance;
+                
+                let particle = Matter.Bodies.circle(particleX, particleY, 2 + Math.random() * 3, {
+                    mass: 0.1,
+                    friction: 0,
+                    frictionAir: 0.08,
+                    render: {
+                        fillStyle: vibrantColors[Math.floor(Math.random() * vibrantColors.length)],
+                        strokeStyle: '#fff',
+                        lineWidth: 0.5
+                    },
+                    plugin: {
+                        wrap: {
+                            min: { x: 0, y: 0 },
+                            max: { x: render.options.width, y: render.options.height }
+                        }
+                    }
+                });
+                
+                // 给粒子一个初始速度
+                let force = 0.002 + Math.random() * 0.003;
+                Matter.Body.applyForce(particle, particle.position, {
+                    x: Math.cos(angle) * force,
+                    y: Math.sin(angle) * force
+                });
+                
+                Matter.World.add(world, particle);
+                
+                // 3秒后移除粒子
+                setTimeout(() => {
+                    Matter.World.remove(world, particle);
+                }, 3000);
+            }
+        }
+
+        function setWindowSize() {
+            dimensions.width = $(window).width();
+            dimensions.height = $(window).height();
+            render.canvas.width = dimensions.width;
+            render.canvas.height = dimensions.height;
+            Matter.Body.setPosition(
+                attractiveBody,
+                { x: dimensions.width / 2, y: dimensions.height / 2 }
+            );
+        }
+
+        function debounce(func, wait, immediate) {
+            var timeout;
+            return function() {
+                var context = this, args = arguments;
+                var later = function() {
+                    timeout = null;
+                    if (!immediate) func.apply(context, args);
+                };
+                var callNow = immediate && !timeout;
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+                if (callNow) func.apply(context, args);
+            };
+        }
+
+        // GUI设置（可选，默认关闭）
+        var gui = new dat.GUI();
+        gui.close();
+
+        var shapeFolder = gui.addFolder('Shapes');
+        shapeFolder.add(config, 'numShapes', 5, 50, 1).name('Number of Shapes').onChange(resetWorld);
+        shapeFolder.add(config, 'minSize', 1, 10, 0.5).name('Min Size').onChange(resetWorld);
+        shapeFolder.add(config, 'maxSize', 5, 20, 0.5).name('Max Size').onChange(resetWorld);
+        shapeFolder.add(config, 'minSides', 3, 10, 1).name('Min Sides').onChange(resetWorld);
+        shapeFolder.add(config, 'maxSides', 3, 10, 1).name('Max Sides').onChange(resetWorld);
+
+        var attractorFolder = gui.addFolder('Attractor');
+        attractorFolder.add(config, 'attractionStrength', 1e-7, 5e-6, 1e-7).name('Attraction Strength');
+
+        var physicsFolder = gui.addFolder('Physics');
+        physicsFolder.add(config, 'frictionAir', 0, 1, 0.01).name('Air Friction').onChange(function(value) {
+            Matter.Composite.allBodies(world).forEach(function(body) {
+                if (!body.isStatic) {
+                    body.frictionAir = value;
+                }
+            });
+        });
+
+        var controlFolder = gui.addFolder('Control');
+        controlFolder.add(config, 'reset').name('Reset World');
+
+        function resizeGUI() {
+            const guiContainer = document.querySelector('.dg.ac');
+            if (guiContainer) {
+                guiContainer.style.width = '300px';
+            }
+        }
+
+        window.addEventListener('resize', resizeGUI);
+        resizeGUI();
+
+        // 特效系统清理函数
+        function cleanupEffectSystem() {
+            try {
+                if (render) {
+                    Matter.Render.stop(render);
+                    if (render.canvas) {
+                        render.canvas.remove();
+                    }
+                }
+                if (runner) Matter.Runner.stop(runner);
+                if (engine) Matter.Engine.clear(engine);
+            } catch (error) {
+                console.warn('特效清理失败:', error);
+            }
+        }
+
+        // 初始化特效系统
+        let clickEffectSystem = null;
+
+        // 打字机效果函数
+        function typewriterEffect(element, text, speed = gameState.typewriterSpeed) {
+            return new Promise((resolve) => {
+                // 清除之前的内容和定时器
+                if (gameState.typewriterTimeout) {
+                    clearTimeout(gameState.typewriterTimeout);
+                }
+                
+                element.innerHTML = '';
+                element.classList.add('typewriter-text');
+                gameState.isTyping = true;
+                
+                let charIndex = 0;
+                const chars = text.split('');
+                
+                // 添加光标
+                const cursor = document.createElement('span');
+                cursor.className = 'typewriter-cursor';
+                element.appendChild(cursor);
+                
+                function typeNextChar() {
+                    if (charIndex < chars.length && gameState.isTyping) {
+                        const char = chars[charIndex];
+                        const span = document.createElement('span');
+                        span.textContent = char;
+                        span.className = 'char-appear';
+                        
+                        // 在光标前插入字符
+                        element.insertBefore(span, cursor);
+                        charIndex++;
+                        
+                        gameState.typewriterTimeout = setTimeout(typeNextChar, speed);
+                    } else {
+                        // 打字完成，移除光标
+                        if (cursor.parentNode) {
+                            cursor.remove();
+                        }
+                        gameState.isTyping = false;
+                        element.classList.remove('typewriter-text');
+                        resolve();
+                    }
+                }
+                
+                // 开始打字
+                gameState.typewriterTimeout = setTimeout(typeNextChar, speed);
+            });
+        }
+
+        // 跳过打字机效果
+        function skipTypewriter() {
+            if (gameState.isTyping && gameState.typewriterTimeout) {
+                clearTimeout(gameState.typewriterTimeout);
+                gameState.isTyping = false;
+                
+                // 立即显示完整文本
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                if (dialog) {
+                    dialogText.innerHTML = dialog.text || '';
+                    dialogText.classList.remove('typewriter-text');
+                    // 移除可能存在的光标
+                    const cursor = dialogText.querySelector('.typewriter-cursor');
+                    if (cursor) cursor.remove();
+                }
+            }
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 节流函数
+        function throttle(func, limit) {
+            let inThrottle;
+            return function(...args) {
+                if (!inThrottle) {
+                    func.apply(this, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        }
+
+        // 初始化游戏
+        async function initGame() {
+            try {
+                // 检查是否从兔子洞返回
+                const returnFromHole = localStorage.getItem('alice_return_from_hole');
+                if (returnFromHole === 'true') {
+                    // 清除标记
+                    localStorage.removeItem('alice_return_from_hole');
+                    // 直接跳转到falling场景（场景索引为2），跳过标题界面
+                    titleScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    // 播放仙境音乐
+                    audioManager.play('wonderland', true);
+                    await loadScene(2); // falling场景的索引
+                    return;
+                }
+                
+                // 预加载关键资源
+                const criticalImages = [
+                    '../img/第一章.jpg',
+                    './img/开场初始背景.jpg',
+                    './img/背景1.0.png',
+                    './img/仙境入口.jpg',
+                    './img/人物素材/1111人物/全身.png',
+                    './img/人物素材/1111人物/困惑.png',
+                    './img/人物素材/1111人物/开心.png',
+                    './img/人物素材/1111人物/坚定.png',
+                    './img/人物素材/1111人物/跳起来的.png',
+                    './img/人物素材/1111人物/叉腰.png',
+                    './img/人物素材/1111人物/白兔.png',
+                    './img/人物素材/1111人物/白兔2 (1).png',
+                    './img/人物素材/1111人物/白兔2 (2).png',
+                    './img/人物素材/1111人物/疯帽子1.png',
+                    './img/人物素材/1111人物/三月兔.png',
+                    './img/人物素材/1111人物/红皇后1.png'
+                ];
+                
+                await imagePreloader.preloadBatch(criticalImages);
+                
+                titleScreen.style.display = 'none';
+                gameContainer.style.display = 'block';
+                
+                // 开始播放花园音乐（循环）
+                audioManager.play('garden', true);
+                
+                await loadScene(0);
+            } catch (error) {
+                console.error('Game initialization failed:', error);
+                alert('游戏初始化失败，请刷新页面重试');
+            }
+        }
+
+        // 加载场景（优化版）
+        async function loadScene(sceneIndex) {
+            if (gameState.isTransitioning) return; // 防止重复调用
+            gameState.isTransitioning = true;
+
+            try {
+                gameState.currentScene = sceneIndex;
+                gameState.currentDialog = 0;
+                
+                const scene = gameData.scenes[sceneIndex];
+                if (!scene) {
+                    throw new Error(`Scene ${sceneIndex} not found`);
+                }
+                
+                // 预加载背景图片
+                await imagePreloader.preload(scene.background);
+                
+                // 预加载该场景的所有角色图片
+                const characterImages = scene.dialogs
+                    .flatMap(dialog => dialog.characters || [])
+                    .map(char => char.image)
+                    .filter(img => img);
+                
+                await imagePreloader.preloadBatch([...new Set(characterImages)]);
+                
+                // 设置背景
+                background.style.backgroundImage = `url(${scene.background})`;
+                background.style.opacity = '1';
+                
+                // 检查并播放场景相关的音频
+                checkAndPlaySceneAudio(scene);
+                
+                // 显示对话框
+                await new Promise(resolve => {
+                    setTimeout(() => {
+                        dialogBox.classList.add('show');
+                        showDialog();
+                        resolve();
+                    }, 300);
+                });
+            } catch (error) {
+                console.error('Failed to load scene:', error);
+                alert('场景加载失败，请重试');
+            } finally {
+                gameState.isTransitioning = false;
+            }
+        }
+
+        // 显示对话（优化版 + 打字机效果）
+        function showDialog() {
+            try {
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                
+                if (!dialog) {
+                    console.log('对话结束');
+                    return;
+                }
+
+                // 取消之前的动画帧和打字机效果
+                if (gameState.animationFrameId) {
+                    cancelAnimationFrame(gameState.animationFrameId);
+                }
+                if (gameState.typewriterTimeout) {
+                    clearTimeout(gameState.typewriterTimeout);
+                }
+
+                // 使用requestAnimationFrame优化动画
+                gameState.animationFrameId = requestAnimationFrame(() => {
+                    // 淡出当前内容
+                    dialogText.style.opacity = '0';
+                    characterName.style.opacity = '0';
+                    
+                    setTimeout(async () => {
+                        // 设置角色名称
+                        characterName.textContent = dialog.character || '';
+                        
+                        // 淡入角色名称
+                        requestAnimationFrame(() => {
+                            characterName.style.opacity = '1';
+                        });
+                        
+                        // 显示角色立绘
+                        showCharacters(dialog.characters || []);
+                        
+                        // 检查是否需要播放特定音频
+                        checkAndPlayDialogAudio(gameState.currentScene, gameState.currentDialog);
+                        
+                        // 等待一下再开始打字效果
+                        setTimeout(async () => {
+                            dialogText.style.opacity = '1';
+                            
+                            // 使用打字机效果显示对话文本
+                            if (dialog.text) {
+                                await typewriterEffect(dialogText, dialog.text);
+                            }
+                            
+                            // 处理选择按钮（修复版） - 确保在打字完成后执行
+                            if (dialog.choices && dialog.choices.length > 0) {
+                                console.log('对话有选择项，准备显示:', dialog.choices);
+                                setTimeout(() => showChoices(dialog.choices), 500);
+                            } else {
+                                console.log('对话无选择项，隐藏选择按钮');
+                                hideChoices();
+                            }
+                        }, 300);
+                    }, 200);
+                });
+            } catch (error) {
+                console.error('Failed to show dialog:', error);
+                // 尝试恢复
+                setTimeout(() => showDialog(), 1000);
+            }
+        }
+
+        // 显示角色立绘（优化版）
+        async function showCharacters(characters) {
+            try {
+                // 先隐藏所有角色，添加淡出效果
+                [characterLeft, characterCenter, characterRight].forEach(char => {
+                    char.classList.remove('show');
+                    char.style.opacity = '0';
+                });
+                
+                if (!characters || characters.length === 0) return;
+                
+                // 延迟显示新角色，创建平滑过渡
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const showPromises = characters.map(async (char, index) => {
+                    const element = getCharacterElement(char.position);
+                    if (!element || !char.image) return;
+                    
+                    try {
+                        // 预加载图片
+                        await imagePreloader.preload(char.image);
+                        
+                        element.src = char.image;
+                        element.alt = char.name || '';
+                        
+                        // 延迟显示，创建逐个出现效果
+                        setTimeout(() => {
+                            requestAnimationFrame(() => {
+                                element.classList.add('show');
+                                element.style.opacity = '1';
+                            });
+                        }, index * 200);
+                    } catch (error) {
+                        console.warn(`Failed to load character image: ${char.image}`, error);
+                    }
+                });
+                
+                await Promise.all(showPromises);
+            } catch (error) {
+                console.error('Failed to show characters:', error);
+            }
+        }
+
+        // 获取角色元素
+        function getCharacterElement(position) {
+            switch(position) {
+                case 'left': return characterLeft;
+                case 'center': return characterCenter;
+                case 'right': return characterRight;
+                default: return null;
+            }
+        }
+
+        // 显示选择按钮（修复版）
+        function showChoices(choiceList) {
+            if (!choiceList || choiceList.length === 0) {
+                console.log('没有选择项可显示');
+                return;
+            }
+            
+            console.log('正在显示选择项:', choiceList.length, '个选择');
+            
+            // 强制确保容器状态正确
+            choices.style.display = 'flex';
+            choices.style.opacity = '0';
+            choices.innerHTML = '';
+            choices.style.visibility = 'visible';
+            
+            // 先创建所有按钮
+            const buttons = [];
+            choiceList.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = choice.text || '';
+                btn.style.transform = 'translateY(50px)';
+                btn.style.opacity = '0';
+                
+                // 防抖的点击处理
+                const debouncedClick = debounce(async (e) => {
+                    if (gameState.isTransitioning) return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // 禁用所有按钮防止重复点击
+                    choices.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+                    
+                    // 创建波纹效果
+                    const ripple = document.createElement('div');
+                    ripple.className = 'choice-ripple';
+                    
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = `${size}px`;
+                    ripple.style.height = `${size}px`;
+                    ripple.style.left = `${x - size / 2}px`;
+                    ripple.style.top = `${y - size / 2}px`;
+                    
+                    btn.appendChild(ripple);
+                    
+                    // 延迟执行选择逻辑
+                    setTimeout(() => {
+                        makeChoice(choice);
+                        if (ripple.parentNode) {
+                            ripple.remove();
+                        }
+                    }, 200);
+                }, 300);
+                
+                btn.addEventListener('click', debouncedClick);
+                buttons.push(btn);
+                choices.appendChild(btn);
+            });
+            
+            console.log('已创建按钮数量:', buttons.length);
+            console.log('容器内按钮数量:', choices.querySelectorAll('.choice-btn').length);
+            
+            // 强制重排，确保DOM更新
+            choices.offsetHeight;
+            
+            // 立即显示容器，然后动画显示按钮
+            requestAnimationFrame(() => {
+                choices.style.opacity = '1';
+                console.log('容器已设置为可见');
+                
+                // 延迟显示按钮动画
+                setTimeout(() => {
+                    buttons.forEach((btn, index) => {
+                        setTimeout(() => {
+                            requestAnimationFrame(() => {
+                                btn.style.transform = 'translateY(0)';
+                                btn.style.opacity = '1';
+                                console.log(`按钮 ${index + 1} 已显示`);
+                            });
+                        }, index * 150);
+                    });
+                }, 50);
+            });
+        }
+
+        // 隐藏选择按钮（修复版）
+        function hideChoices() {
+            console.log('隐藏选择项');
+            
+            const buttons = choices.querySelectorAll('.choice-btn');
+            if (buttons.length === 0) {
+                // 如果没有按钮，直接隐藏容器
+                choices.style.opacity = '0';
+                return;
+            }
+            
+            buttons.forEach((btn, index) => {
+                setTimeout(() => {
+                    btn.style.transform = 'translateY(20px)';
+                    btn.style.opacity = '0';
+                }, index * 50); // 逐个隐藏
+            });
+            
+            setTimeout(() => {
+                choices.style.opacity = '0';
+                // 完全隐藏后清空内容，确保下次显示时状态正确
+                setTimeout(() => {
+                    choices.innerHTML = '';
+                    choices.style.display = 'flex'; // 确保display属性正确
+                }, 200);
+            }, buttons.length * 50 + 200);
+        }
+
+        // 做出选择（优化版）
+        function makeChoice(choice) {
+            if (gameState.isTransitioning || !choice) return;
+            
+            try {
+                // 记录当前分支状态到历史栈
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+                
+                if (dialog) {
+                    const currentState = {
+                        sceneId: scene.id,
+                        sceneIndex: gameState.currentScene,
+                        dialogIndex: gameState.currentDialog,
+                        choice: choice,
+                        dialogText: dialog.text || '',
+                        character: dialog.character || ''
+                    };
+                    gameState.historyStack.push(currentState);
+                }
+                
+                // 隐藏选择按钮
+                hideChoices();
+                
+                // 检查并播放选择相关的音频
+                checkAndPlayChoiceAudio(choice);
+                
+                if (choice.nextScene) {
+                    // 检查是否是外部HTML文件
+                    if (choice.nextScene.endsWith('.html')) {
+                        // 跳转到外部HTML文件
+                        setTimeout(() => {
+                            window.location.href = choice.nextScene;
+                        }, 500);
+                    } else {
+                        // 内部场景跳转
+                        const nextSceneIndex = gameData.scenes.findIndex(scene => scene.id === choice.nextScene);
+                        if (nextSceneIndex !== -1) {
+                            setTimeout(() => loadScene(nextSceneIndex), 500);
+                        } else {
+                            console.error(`Scene not found: ${choice.nextScene}`);
+                        }
+                    }
+                } else {
+                    setTimeout(() => nextDialog(), 300);
+                }
+            } catch (error) {
+                console.error('Failed to make choice:', error);
+                gameState.isTransitioning = false;
+            }
+        }
+
+        // 下一段对话（优化版）
+        function nextDialog() {
+            if (gameState.isTransitioning) return;
+            
+            try {
+                gameState.currentDialog++;
+                const scene = gameData.scenes[gameState.currentScene];
+
+                if (gameState.currentDialog >= scene.dialogs.length) {
+                    console.log('场景结束');
+                    return;
+                }
+
+                console.log(`显示对话 ${gameState.currentDialog + 1}/${scene.dialogs.length}`);
+                showDialog();
+            } catch (error) {
+                console.error('Failed to show next dialog:', error);
+            }
+        }
+
+        // 调试函数：检查选择按钮状态
+        function debugChoicesState() {
+            console.log('=== 选择按钮状态调试 ===');
+            console.log('容器透明度:', choices.style.opacity);
+            console.log('容器显示状态:', choices.style.display);
+            console.log('按钮数量:', choices.querySelectorAll('.choice-btn').length);
+            console.log('当前对话索引:', gameState.currentDialog);
+            console.log('当前场景:', gameState.currentScene);
+            
+            const scene = gameData.scenes[gameState.currentScene];
+            const dialog = scene?.dialogs[gameState.currentDialog];
+            if (dialog) {
+                console.log('当前对话有选择:', dialog.choices?.length || 0);
+                console.log('选择内容:', dialog.choices);
+            }
+            console.log('========================');
+        }
+
+        // 在控制台暴露调试函数
+        window.debugChoices = debugChoicesState;
+
+        // 内存清理函数
+        function cleanupResources() {
+            // 清理动画帧
+            if (gameState.animationFrameId) {
+                cancelAnimationFrame(gameState.animationFrameId);
+                gameState.animationFrameId = null;
+            }
+            
+            // 清理事件监听器
+            const buttons = choices.querySelectorAll('.choice-btn');
+            buttons.forEach(btn => {
+                btn.removeEventListener('click', btn._clickHandler);
+            });
+            
+            // 停止所有音频
+            if (audioManager) {
+                audioManager.stop();
+            }
+
+        }
+
+
+
+        // 性能监控
+        function performanceMonitor() {
+            const startTime = performance.now();
+            
+            return {
+                end: (operation) => {
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    
+                    if (duration > 100) { // 超过100ms的操作
+                        console.warn(`Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`);
+                    }
+                }
+            };
+        }
+
+        // 预加载所有游戏资源
+        async function preloadAllResources() {
+            const monitor = performanceMonitor();
+            
+            try {
+                const allImages = new Set();
+                
+                // 添加第一章背景图片
+                allImages.add('../img/第一章.jpg');
+                
+                gameData.scenes.forEach(scene => {
+                    if (scene.background) allImages.add(scene.background);
+                    
+                    scene.dialogs.forEach(dialog => {
+                        if (dialog.characters) {
+                            dialog.characters.forEach(char => {
+                                if (char.image) allImages.add(char.image);
+                            });
+                        }
+                    });
+                });
+                
+                await imagePreloader.preloadBatch([...allImages]);
+                console.log(`Preloaded ${allImages.size} images`);
+            } catch (error) {
+                console.warn('Failed to preload some resources:', error);
+            } finally {
+                monitor.end('preloadAllResources');
+            }
+        }
+
+        // 回溯到上一个分支
+        function backtrack() {
+            if (gameState.historyStack.length === 0) {
+                alert('没有可回溯的分支！');
+                return;
+            }
+            
+            // 显示回溯弹窗
+            showBacktrackModal();
+        }
+
+        // 显示回溯弹窗
+        function showBacktrackModal() {
+            backtrackTreeContainer.innerHTML = ''; // 清空列表
+            
+            if (gameState.historyStack.length === 0) {
+                backtrackTreeContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 50px;">暂无历史记录</div>';
+            } else {
+                // 构建简化的树形结构
+                renderHistoryTree();
+            }
+            
+            backtrackModal.style.display = 'flex';
+        }
+
+        // 渲染历史树
+        function renderHistoryTree() {
+            let html = `
+                <div class="tree-level">
+                    <div class="tree-node tree-start-node">开始游戏</div>
+                </div>
+            `;
+            
+            gameState.historyStack.forEach((state, index) => {
+                const isCurrentPath = index === gameState.historyStack.length - 1;
+                const indentLevel = Math.floor(index / 2) + 1;
+                
+                html += `
+                    <div class="tree-level" style="margin-left: ${indentLevel * 40}px;">
+                        <div class="tree-connector-vertical" style="left: ${(indentLevel - 1) * 40 - 20}px; height: 30px; top: -15px;"></div>
+                        <div class="tree-connector-horizontal" style="left: ${(indentLevel - 1) * 40 - 20}px; width: 40px; top: 15px;"></div>
+                        <div class="tree-node ${isCurrentPath ? 'current' : ''}" 
+                             data-index="${index}"
+                             data-scene="${state.sceneId}"
+                             data-dialog="${state.dialogIndex}">
+                            ${state.choice.text}
+                            ${isCurrentPath ? '<div class="tree-current-indicator">●</div>' : ''}
+                        </div>
+                        <div class="tree-node-info">
+                            <div>角色: ${state.character}</div>
+                            <div>场景: ${state.sceneId}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            backtrackTreeContainer.innerHTML = html;
+            
+            // 添加点击事件
+            backtrackTreeContainer.querySelectorAll('.tree-node[data-index]').forEach(node => {
+                node.addEventListener('click', () => {
+                    const index = parseInt(node.dataset.index);
+                    jumpToHistoryPoint(index);
+                    closeBacktrackModal();
+                });
+            });
+        }
+
+        // 跳转到历史选择点（修正版）
+        function jumpToHistoryPoint(historyIndex) {
+            if (historyIndex < 0 || historyIndex >= gameState.historyStack.length) {
+                return;
+            }
+            
+            const targetState = gameState.historyStack[historyIndex];
+            
+            // 截断历史栈到目标点
+            gameState.historyStack = gameState.historyStack.slice(0, historyIndex);
+            
+            // 找到目标场景的索引
+            const targetSceneIndex = gameData.scenes.findIndex(scene => scene.id === targetState.sceneId);
+            if (targetSceneIndex === -1) {
+                console.error(`场景 ${targetState.sceneId} 未找到`);
+                return;
+            }
+            
+            // 跳转到目标场景和对话
+            gameState.currentScene = targetSceneIndex;
+            gameState.currentDialog = targetState.dialogIndex;
+            
+            // 重新加载场景
+            const scene = gameData.scenes[gameState.currentScene];
+            background.style.backgroundImage = `url(${scene.background})`;
+            background.style.opacity = '1';
+            dialogBox.classList.add('show');
+            
+            showDialog();
+        }
+
+        // 关闭回溯弹窗
+        function closeBacktrackModal() {
+            backtrackModal.style.display = 'none';
+        }
+
+        // 事件监听
+        startBtn.addEventListener('click', () => {
+            // 重新初始化选择按钮容器
+            initChoicesContainer();
+            initGame();
+        });
+        
+        // 点击页面任意位置继续对话（优化版 + 打字机支持）
+        document.addEventListener('click', debounce((e) => {
+            // 检查点击的元素是否应该被忽略
+            const clickedElement = e.target;
+            const excludeSelectors = [
+                '.choice-btn',           // 选择按钮
+                '.control-btn',          // 控制按钮
+                '.backtrack-modal-btn',  // 回溯弹窗按钮
+                '#start-btn',            // 开始按钮
+                '#backtrack-modal',      // 回溯弹窗
+                '.tree-node',            // 历史树节点
+                '.dg',                   // GUI控制面板
+                '.dg *'                  // GUI控制面板内的所有元素
+            ];
+            
+            // 检查是否点击了需要排除的元素
+            const shouldExclude = excludeSelectors.some(selector => {
+                if (selector.includes('*')) {
+                    // 处理通配符选择器
+                    const baseSelector = selector.replace(' *', '');
+                    return clickedElement.closest(baseSelector);
+                }
+                return clickedElement.matches(selector) || clickedElement.closest(selector);
+            });
+            
+            // 检查是否在标题界面
+            const titleScreen = document.getElementById('title-screen');
+            const isOnTitleScreen = titleScreen && titleScreen.style.display !== 'none';
+            
+            // 检查是否在回溯弹窗中
+            const backtrackModal = document.getElementById('backtrack-modal');
+            const isInBacktrackModal = backtrackModal && backtrackModal.style.display === 'flex';
+            
+            // 如果在标题界面、回溯弹窗中，或点击了排除的元素，则不执行对话继续逻辑
+            if (isOnTitleScreen || isInBacktrackModal || shouldExclude) {
+                return;
+            }
+            
+            // 执行对话继续逻辑
+            if (!gameState.autoMode && !gameState.skipMode && !gameState.isTransitioning) {
+                // 如果正在打字，点击跳过打字机效果
+                if (gameState.isTyping) {
+                    skipTypewriter();
+                } else {
+                    // 否则继续下一段对话
+                    nextDialog();
+                }
+            }
+        }, 100));
+
+        // 控制按钮事件（优化版）
+        autoBtn.addEventListener('click', debounce(() => {
+            gameState.autoMode = !gameState.autoMode;
+            autoBtn.textContent = gameState.autoMode ? '手动' : '自动';
+        }, 300));
+
+        skipBtn.addEventListener('click', debounce(() => {
+            gameState.skipMode = !gameState.skipMode;
+            skipBtn.textContent = gameState.skipMode ? '正常' : '快进';
+        }, 300));
+
+        audioBtn.addEventListener('click', debounce(() => {
+            gameState.audioEnabled = !gameState.audioEnabled;
+            if (gameState.audioEnabled) {
+                audioBtn.innerHTML = '🔊 音频';
+                audioBtn.title = '音频开关';
+            } else {
+                audioBtn.innerHTML = '🔇 静音';
+                audioBtn.title = '音频开关';
+                audioManager.stop(); // 停止当前音频
+            }
+        }, 300));
+
+        backtrackBtn.addEventListener('click', debounce(backtrack, 300));
+        backtrackModalCancelBtn.addEventListener('click', closeBacktrackModal);
+        backtrackModalConfirmBtn.addEventListener('click', closeBacktrackModal);
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case ' ': // 空格键继续
+                    e.preventDefault();
+                    nextDialog();
+                    break;
+                case 'Enter': // 回车键继续
+                    e.preventDefault();
+                    nextDialog();
+                    break;
+                case 'b': // B键回溯
+                case 'B':
+                    e.preventDefault();
+                    backtrack();
+                    break;
+                case 'c': // C键强制显示选择（调试用）
+                case 'C':
+                    e.preventDefault();
+                    const scene = gameData.scenes[gameState.currentScene];
+                    const dialog = scene?.dialogs[gameState.currentDialog];
+                    if (dialog?.choices && dialog.choices.length > 0) {
+                        console.log('手动触发选择显示');
+                        // 强制重新初始化容器
+                        initChoicesContainer();
+                        setTimeout(() => showChoices(dialog.choices), 100);
+                    } else {
+                        console.log('当前对话没有选择项');
+                    }
+                    break;
+                case 'd': // D键调试信息
+                case 'D':
+                    e.preventDefault();
+                    debugChoicesState();
+                    break;
+            }
+        });
+
+        // 自动模式
+        setInterval(() => {
+            if (gameState.autoMode) {
+                const scene = gameData.scenes[gameState.currentScene];
+                const dialog = scene.dialogs[gameState.currentDialog];
+
+                if (dialog && (!dialog.choices || dialog.choices.length === 0)) {
+                    setTimeout(nextDialog, 3000); // 3秒后自动继续
+                }
+            }
+        }, 1000);
+
+
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            cleanupResources();
+            if (clickEffectSystem) {
+                cleanupEffectSystem();
+            }
+        });
+
+        // 页面可见性变化时的优化
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // 页面隐藏时暂停动画
+                if (gameState.animationFrameId) {
+                    cancelAnimationFrame(gameState.animationFrameId);
+                }
+            } else {
+                // 页面显示时恢复
+                if (gameState.animationFrameId) {
+                    showDialog();
+                }
+            }
+        });
+
+        // 错误处理
+        window.addEventListener('error', (e) => {
+            console.error('Global error caught:', e.error);
+            // 尝试恢复游戏状态
+            if (gameState.isTransitioning) {
+                gameState.isTransitioning = false;
+            }
+        });
+
+
+
+        // 添加标题界面特效
+        function initTitleScreenEffects() {
+            // 为标题添加鼠标悬停效果
+            const title = document.querySelector('#title-screen h1');
+            if (title) {
+                title.addEventListener('mouseenter', () => {
+                    title.style.transform = 'scale(1.05)';
+                    title.style.textShadow = '0 0 40px rgba(255, 105, 180, 1), 0 0 80px rgba(255, 69, 185, 0.8)';
+                });
+                
+                title.addEventListener('mouseleave', () => {
+                    title.style.transform = 'scale(1)';
+                    title.style.textShadow = '';
+                });
+            }
+            
+            // 为开始按钮添加点击波纹效果
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', (e) => {
+                    // 创建波纹效果
+                    const ripple = document.createElement('span');
+                    const rect = startBtn.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    ripple.style.cssText = `
+                        position: absolute;
+                        border-radius: 50%;
+                        background: rgba(255, 255, 255, 0.6);
+                        width: ${size}px;
+                        height: ${size}px;
+                        left: ${x}px;
+                        top: ${y}px;
+                        animation: startBtnRipple 0.6s ease-out;
+                        pointer-events: none;
+                        z-index: 1;
+                    `;
+                    
+                    startBtn.appendChild(ripple);
+                    
+                    setTimeout(() => {
+                        if (ripple.parentNode) {
+                            ripple.remove();
+                        }
+                    }, 600);
+                });
+            }
+        }
+
+        // 初始化选择按钮容器（增强版）
+        function initChoicesContainer() {
+            choices.style.opacity = '0';
+            choices.style.display = 'flex';
+            choices.style.visibility = 'visible';
+            choices.style.pointerEvents = 'auto';
+            choices.innerHTML = '';
+            
+            // 强制重排，确保样式应用
+            choices.offsetHeight;
+            
+            console.log('选择按钮容器已初始化');
+            console.log('容器状态 - opacity:', choices.style.opacity, 'display:', choices.style.display);
+        }
+
+        // 游戏初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化选择按钮容器
+            initChoicesContainer();
+            
+            // 初始化标题界面特效
+            initTitleScreenEffects();
+            
+            // 显示第一章背景图片
+            showChapterOneBackground();
+            
+            // 初始化点击特效系统
+            try {
+                let m = createWorld();
+                setWindowSize();
+                $(window).resize(debounce(setWindowSize, 250));
+                clickEffectSystem = m; // 保存引用以便后续清理
+            } catch (error) {
+                console.warn('点击特效系统初始化失败:', error);
+            }
+            
+            // 检查是否从兔子洞返回
+            const returnFromHole = localStorage.getItem('alice_return_from_hole');
+            if (returnFromHole === 'true') {
+                // 如果从兔子洞返回，直接初始化游戏而不显示标题界面
+                initGame();
+            }
+            
+            // 预加载所有资源
+            preloadAllResources().then(() => {
+                console.log('All resources preloaded successfully');
+            }).catch(error => {
+                console.warn('Some resources failed to preload:', error);
+            });
+            
+
+        });
+
+        // 显示第一章背景图片
+        function showChapterOneBackground() {
+            const chapterOneBg = document.getElementById('chapter-one-bg');
+            if (chapterOneBg) {
+                // 延迟显示背景图片，创造渐入效果
+                setTimeout(() => {
+                    chapterOneBg.classList.add('show');
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>

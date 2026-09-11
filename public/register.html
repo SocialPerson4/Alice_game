@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 奇幻梦游录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif SC', 'Cinzel', serif;
+            background: linear-gradient(135deg, #1a4a5c, #2d5a87, #4a5d8a, #6b4c93);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景粒子效果 */
+        .background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 注册容器 */
+        .register-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            width: 450px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .register-container::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6, #87ceeb);
+            border-radius: 20px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        /* 标题 */
+        .register-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6, #b0e0e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 表单组 */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(173, 216, 230, 0.8);
+            box-shadow: 0 0 15px rgba(173, 216, 230, 0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 头像选择 */
+        .avatar-selection {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(173, 216, 230, 0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .avatar-option:hover {
+            border-color: rgba(173, 216, 230, 0.8);
+            transform: scale(1.1);
+        }
+
+        .avatar-option.selected {
+            border-color: #add8e6;
+            background: rgba(173, 216, 230, 0.2);
+            box-shadow: 0 0 15px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 注册按钮 */
+        .register-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6);
+            border: none;
+            border-radius: 10px;
+            color: #1a4a5c;
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .register-btn:hover::before {
+            left: 100%;
+        }
+
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(173, 216, 230, 0.4);
+        }
+
+        .register-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 登录链接 */
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .login-link a {
+            color: rgba(173, 216, 230, 0.9);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .login-link a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(45deg, #87ceeb, #add8e6);
+            transition: width 0.3s ease;
+        }
+
+        .login-link a:hover::after {
+            width: 100%;
+        }
+
+        .login-link a:hover {
+            color: #add8e6;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 音频控制按钮 */
+        .audio-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .audio-toggle-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(173, 216, 230, 0.6);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-toggle-btn:hover {
+            background: rgba(173, 216, 230, 0.3);
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(173, 216, 230, 0.4);
+        }
+
+        .audio-toggle-btn.muted {
+            background: rgba(255, 100, 100, 0.3);
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        .audio-toggle-btn.muted:hover {
+            background: rgba(255, 100, 100, 0.4);
+            box-shadow: 0 15px 35px rgba(255, 100, 100, 0.4);
+        }
+
+        /* 返回主页链接 */
+        .back-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .back-home:hover {
+            color: #add8e6;
+            text-shadow: 0 0 10px rgba(173, 216, 230, 0.5);
+        }
+
+        /* 加载状态 */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading .register-btn {
+            background: linear-gradient(45deg, #666, #888);
+        }
+
+        /* 错误消息 */
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            color: #ffcccc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* 成功消息 */
+        .success-message {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.5);
+            color: #ccffcc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* 密码强度指示器 */
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .strength-weak { color: #ff6b6b; }
+        .strength-medium { color: #ffd93d; }
+        .strength-strong { color: #6bcf7f; }
+
+        /* 动画 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes borderGlow {
+            0%, 100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .register-container {
+                padding: 30px 20px;
+                width: 95vw;
+            }
+
+            .register-title {
+                font-size: 2rem;
+            }
+
+            .avatar-selection {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .avatar-option {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+    <!-- 引入音频设置模块 -->
+    <script src="js/audio-settings.js"></script>
+</head>
+<body>
+    <!-- 背景音乐 -->
+    <audio id="backgroundMusic" loop>
+        <source src="music/爱丽丝的梦境.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 音频控制按钮 -->
+    <div class="audio-button" id="audioButton">
+        <button class="audio-toggle-btn" id="audioToggle">🔊</button>
+    </div>
+
+    <!-- 背景画布 -->
+    <canvas class="background-canvas" id="backgroundCanvas"></canvas>
+
+    <!-- 返回主页链接 -->
+    <a href="/" class="back-home">← 返回主页</a>
+
+    <!-- 注册容器 -->
+    <div class="register-container">
+        <h1 class="register-title">仙境注册</h1>
+        
+        <!-- 错误消息 -->
+        <div class="error-message" id="errorMessage"></div>
+        
+        <!-- 成功消息 -->
+        <div class="success-message" id="successMessage"></div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+            </div>
+
+            <div class="form-group">
+                <label for="nickname">昵称</label>
+                <input type="text" id="nickname" name="nickname" placeholder="请输入昵称" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码（至少6位）" required>
+                <div class="password-strength" id="passwordStrength"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">确认密码</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="请再次输入密码" required>
+            </div>
+
+            <div class="form-group">
+                <label>选择头像</label>
+                <div class="avatar-selection">
+                    <div class="avatar-option selected" data-avatar="👧">👧</div>
+                    <div class="avatar-option" data-avatar="👦">👦</div>
+                    <div class="avatar-option" data-avatar="🐰">🐰</div>
+                    <div class="avatar-option" data-avatar="🐱">🐱</div>
+                    <div class="avatar-option" data-avatar="🦋">🦋</div>
+                    <div class="avatar-option" data-avatar="🌸">🌸</div>
+                    <div class="avatar-option" data-avatar="⭐">⭐</div>
+                    <div class="avatar-option" data-avatar="🌙">🌙</div>
+                </div>
+            </div>
+
+            <button type="submit" class="register-btn">创建仙境账号</button>
+        </form>
+
+        <div class="login-link">
+            <p>已有账号？ <a href="/login">立即登录</a></p>
+        </div>
+    </div>
+
+    <script>
+        // 背景粒子效果
+        const canvas = document.getElementById('backgroundCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = (Math.random() - 0.5) * 2;
+                this.color = `rgba(${255}, ${215 + Math.random() * 40}, ${Math.random() * 100}, ${Math.random() * 0.5 + 0.2})`;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life--;
+
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                if (this.life <= 0) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = this.maxLife;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                const alpha = this.life / this.maxLife;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < 100; i++) {
+            particles.push(new Particle());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 头像选择
+        const avatarOptions = document.querySelectorAll('.avatar-option');
+        let selectedAvatar = '👧';
+
+        avatarOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                avatarOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedAvatar = option.dataset.avatar;
+            });
+        });
+
+        // 密码强度检查
+        const passwordInput = document.getElementById('password');
+        const passwordStrength = document.getElementById('passwordStrength');
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let message = '';
+
+            if (password.length >= 6) strength++;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+            if (strength < 3) {
+                message = '密码强度：弱';
+                passwordStrength.className = 'password-strength strength-weak';
+            } else if (strength < 5) {
+                message = '密码强度：中等';
+                passwordStrength.className = 'password-strength strength-medium';
+            } else {
+                message = '密码强度：强';
+                passwordStrength.className = 'password-strength strength-strong';
+            }
+
+            passwordStrength.textContent = message;
+        }
+
+        passwordInput.addEventListener('input', (e) => {
+            checkPasswordStrength(e.target.value);
+        });
+
+        // 注册表单处理
+        const registerForm = document.getElementById('registerForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            if (type === 'error') {
+                element.style.background = 'rgba(255, 0, 0, 0.2)';
+                element.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+                element.style.color = '#ffcccc';
+            } else {
+                element.style.background = 'rgba(0, 255, 0, 0.2)';
+                element.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+                element.style.color = '#ccffcc';
+            }
+
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const nickname = document.getElementById('nickname').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // 验证输入
+            if (!username || !nickname || !password || !confirmPassword) {
+                showMessage(errorMessage, '请填写所有必填字段', 'error');
+                return;
+            }
+
+            if (username.length < 3) {
+                showMessage(errorMessage, '用户名至少3个字符', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage(errorMessage, '密码至少6位', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showMessage(errorMessage, '两次输入的密码不一致', 'error');
+                return;
+            }
+
+            // 显示加载状态
+            registerForm.classList.add('loading');
+            const submitBtn = registerForm.querySelector('.register-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = '正在创建账号...';
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        username, 
+                        password, 
+                        nickname, 
+                        avatar: selectedAvatar 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(successMessage, '注册成功！正在跳转到登录页面...', 'success');
+                    
+                    // 延迟跳转到登录页面
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    showMessage(errorMessage, data.message || '注册失败', 'error');
+                }
+            } catch (error) {
+                console.error('注册错误:', error);
+                showMessage(errorMessage, '网络错误，请稍后重试', 'error');
+            } finally {
+                // 恢复按钮状态
+                registerForm.classList.remove('loading');
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        // 音频控制系统
+        const audio = document.getElementById('backgroundMusic');
+        const audioToggle = document.getElementById('audioToggle');
+
+        // 音频状态管理
+        let isAudioMuted = false;
+        let savedVolume = 0.5;
+
+        // 初始化音频设置
+        function initializeAudio() {
+            const savedAudioSettings = localStorage.getItem('audioSettings');
+            if (savedAudioSettings) {
+                const settings = JSON.parse(savedAudioSettings);
+                audio.volume = settings.volume || 0.5;
+                isAudioMuted = settings.muted || false;
+                savedVolume = settings.volume || 0.5;
+            } else {
+                audio.volume = 0.5;
+            }
+
+            updateAudioToggleButton();
+            
+            audio.addEventListener('canplaythrough', () => {
+                if (!isAudioMuted) {
+                    audio.play().catch(() => {
+                        console.log('需要用户交互才能播放音频');
+                    });
+                }
+            });
+        }
+
+        // 更新音频开关按钮
+        function updateAudioToggleButton() {
+            if (isAudioMuted || audio.paused) {
+                audioToggle.textContent = '🔇';
+                audioToggle.classList.add('muted');
+            } else {
+                audioToggle.textContent = '🔊';
+                audioToggle.classList.remove('muted');
+            }
+        }
+
+        // 切换音频播放/暂停
+        function toggleAudio() {
+            if (isAudioMuted) {
+                isAudioMuted = false;
+                audio.volume = savedVolume;
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else if (audio.paused) {
+                audio.play().catch(() => {
+                    console.log('播放失败');
+                });
+            } else {
+                audio.pause();
+            }
+            updateAudioToggleButton();
+            saveAudioSettings();
+        }
+
+        // 保存音频设置
+        function saveAudioSettings() {
+            const settings = {
+                volume: savedVolume,
+                muted: isAudioMuted
+            };
+            localStorage.setItem('audioSettings', JSON.stringify(settings));
+        }
+
+        // 音频控制事件监听
+        audioToggle.addEventListener('click', toggleAudio);
+
+        // 强制清除登录状态，允许注册新账号
+        window.addEventListener('load', () => {
+            // 初始化音频系统
+            initializeAudio();
+            
+            // 清除现有的登录状态
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        });
+    </script>
+</body>
+</html> 

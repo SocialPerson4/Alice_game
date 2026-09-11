@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>时间的低语 - 爱丽丝梦游仙境记忆挑战</title>
+  <!-- 成就系统 -->
+  <script src="../js/achievement-system.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .game-container {
+      text-align: center;
+      max-width: 1200px;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .game-title {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+      to { text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 255, 255, 0.3); }
+    }
+
+    .level-display {
+      font-size: 1.5em;
+      margin-bottom: 30px;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .clocks-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+      margin-bottom: 50px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .clock {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: bold;
+    }
+
+    /* 时钟数字标记 */
+    .clock::before {
+      content: '';
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 1px;
+    }
+
+    .clock::after {
+      content: '';
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 1px;
+    }
+
+    /* 时钟指针容器 */
+    .clock .hands {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+    }
+
+    /* 音符标签样式 */
+    .note-label {
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.9em;
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.8);
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+
+    .clock:hover .note-label {
+      background: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 1);
+      transform: translateX(-50%) scale(1.1);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .clock.active .note-label {
+      animation: noteGlow 0.5s ease-in-out;
+    }
+
+    @keyframes noteGlow {
+      0% {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateX(-50%) scale(1);
+      }
+      50% {
+        background: rgba(255, 255, 255, 0.4);
+        transform: translateX(-50%) scale(1.2);
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+      }
+      100% {
+        background: rgba(0, 0, 0, 0.3);
+        transform: translateX(-50%) scale(1);
+      }
+    }
+
+    .clock:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+    }
+
+    .clock.active {
+      animation: pulse 0.5s ease-in-out;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+    }
+
+    .clock.active .hands::before {
+      animation-duration: 0.5s !important;
+    }
+
+    .clock.active .hands::after {
+      animation-duration: 0.8s !important;
+    }
+
+    .clock.correct {
+      animation: correctPulse 0.5s ease-in-out;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+    }
+
+    .clock.wrong {
+      animation: wrongPulse 0.5s ease-in-out;
+      box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes correctPulse {
+      0% { transform: scale(1); background: radial-gradient(circle, rgba(0, 255, 0, 0.3), rgba(0, 0, 0, 0.3)); }
+      50% { transform: scale(1.1); background: radial-gradient(circle, rgba(0, 255, 0, 0.6), rgba(0, 0, 0, 0.3)); }
+      100% { transform: scale(1); background: radial-gradient(circle, rgba(0, 255, 0, 0.3), rgba(0, 0, 0, 0.3)); }
+    }
+
+    @keyframes wrongPulse {
+      0% { transform: scale(1); background: radial-gradient(circle, rgba(255, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); }
+      50% { transform: scale(1.1); background: radial-gradient(circle, rgba(255, 0, 0, 0.6), rgba(0, 0, 0, 0.3)); }
+      100% { transform: scale(1); background: radial-gradient(circle, rgba(255, 0, 0, 0.3), rgba(0, 0, 0, 0.3)); }
+    }
+
+    /* 模型1：蓝色钟面，常规指针 */
+    .clock:nth-child(1) {
+      background: radial-gradient(circle, rgba(0, 123, 255, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(0, 123, 255, 0.6);
+    }
+    .clock:nth-child(1) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 35px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      animation: rotateClockwise 8s linear infinite;
+    }
+    .clock:nth-child(1) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 25px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      animation: rotateCounterClockwise 12s linear infinite;
+    }
+
+    /* 模型2：红色钟面，卷曲指针 */
+    .clock:nth-child(2) {
+      background: radial-gradient(circle, rgba(220, 53, 69, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(220, 53, 69, 0.6);
+    }
+    .clock:nth-child(2) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
+      animation: rotateClockwise 6s linear infinite;
+    }
+    .clock:nth-child(2) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
+      animation: rotateCounterClockwise 9s linear infinite;
+    }
+
+    /* 模型3：绿色钟面，螺旋图案 */
+    .clock:nth-child(3) {
+      background: radial-gradient(circle, rgba(40, 167, 69, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(40, 167, 69, 0.6);
+    }
+    .clock:nth-child(3) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      clip-path: polygon(0 0, 100% 0, 70% 30%, 30% 30%, 70% 60%, 30% 60%, 70% 100%, 30% 100%);
+      animation: rotateClockwise 7s linear infinite;
+    }
+    .clock:nth-child(3) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      clip-path: polygon(0 0, 100% 0, 70% 30%, 30% 30%, 70% 60%, 30% 60%, 70% 100%, 30% 100%);
+      animation: rotateCounterClockwise 11s linear infinite;
+    }
+
+    /* 模型4：黄色钟面，沙漏形指针 */
+    .clock:nth-child(4) {
+      background: radial-gradient(circle, rgba(255, 193, 7, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(255, 193, 7, 0.6);
+    }
+    .clock:nth-child(4) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      clip-path: polygon(0 0, 100% 0, 60% 40%, 40% 40%, 100% 100%, 0 100%);
+      animation: rotateClockwise 5s linear infinite;
+    }
+    .clock:nth-child(4) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      clip-path: polygon(0 0, 100% 0, 60% 40%, 40% 40%, 100% 100%, 0 100%);
+      animation: rotateCounterClockwise 8s linear infinite;
+    }
+
+    /* 模型5：紫色钟面，齿轮暴露 */
+    .clock:nth-child(5) {
+      background: radial-gradient(circle, rgba(111, 66, 193, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(111, 66, 193, 0.6);
+    }
+    .clock:nth-child(5) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      clip-path: polygon(0 0, 20% 0, 20% 20%, 40% 20%, 40% 0, 60% 0, 60% 20%, 80% 20%, 80% 0, 100% 0, 100% 100%, 80% 100%, 80% 80%, 60% 80%, 60% 100%, 40% 100%, 40% 80%, 20% 80%, 20% 100%, 0 100%);
+      animation: rotateClockwise 4s linear infinite;
+    }
+    .clock:nth-child(5) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      clip-path: polygon(0 0, 20% 0, 20% 20%, 40% 20%, 40% 0, 60% 0, 60% 20%, 80% 20%, 80% 0, 100% 0, 100% 100%, 80% 100%, 80% 80%, 60% 80%, 60% 100%, 40% 100%, 40% 80%, 20% 80%, 20% 100%, 0 100%);
+      animation: rotateCounterClockwise 6s linear infinite;
+    }
+
+    /* 模型6：橙色钟面，破碎边缘 */
+    .clock:nth-child(6) {
+      background: radial-gradient(circle, rgba(253, 126, 20, 0.4), rgba(0, 0, 0, 0.3));
+      border: 3px solid rgba(253, 126, 20, 0.6);
+    }
+    .clock:nth-child(6) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+      clip-path: polygon(0 0, 30% 0, 30% 15%, 50% 15%, 50% 0, 70% 0, 70% 15%, 90% 15%, 90% 0, 100% 0, 100% 100%, 70% 100%, 70% 85%, 50% 85%, 50% 100%, 30% 100%, 30% 85%, 10% 85%, 10% 100%, 0 100%);
+      animation: rotateClockwise 3s linear infinite;
+    }
+    .clock:nth-child(6) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.7);
+      transform: translate(-50%, -50%) rotate(0deg);
+      transform-origin: bottom center;
+      border-radius: 1px;
+      clip-path: polygon(0 0, 30% 0, 30% 15%, 50% 15%, 50% 0, 70% 0, 70% 15%, 90% 15%, 90% 0, 100% 0, 100% 100%, 70% 100%, 70% 85%, 50% 85%, 50% 100%, 30% 100%, 30% 85%, 10% 85%, 10% 100%, 0 100%);
+      animation: rotateCounterClockwise 5s linear infinite;
+    }
+
+    /* 模型7：黑色钟面，无指针，中心有漩涡 */
+    .clock:nth-child(7) {
+      background: radial-gradient(circle, rgba(33, 37, 41, 0.6), rgba(0, 0, 0, 0.4));
+      border: 3px solid rgba(33, 37, 41, 0.8);
+    }
+    .clock:nth-child(7) .hands::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.3), transparent, rgba(255, 255, 255, 0.3), transparent);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      animation: spin 2s linear infinite;
+    }
+    .clock:nth-child(7) .hands::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      animation: spin 4s linear infinite reverse;
+    }
+
+    @keyframes spin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes rotateClockwise {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    @keyframes rotateCounterClockwise {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(-360deg); }
+    }
+
+    .controls {
+      margin-top: 30px;
+    }
+
+    .btn {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      border-radius: 25px;
+      cursor: pointer;
+      margin: 0 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .message {
+      font-size: 1.5em;
+      margin: 20px 0;
+      min-height: 40px;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .success {
+      color: #28a745;
+      animation: successGlow 1s ease-in-out;
+    }
+
+    .error {
+      color: #dc3545;
+      animation: errorGlow 1s ease-in-out;
+    }
+
+    @keyframes successGlow {
+      0% { text-shadow: 0 0 10px rgba(40, 167, 69, 0.5); }
+      50% { text-shadow: 0 0 20px rgba(40, 167, 69, 0.8); }
+      100% { text-shadow: 0 0 10px rgba(40, 167, 69, 0.5); }
+    }
+
+    @keyframes errorGlow {
+      0% { text-shadow: 0 0 10px rgba(220, 53, 69, 0.5); }
+      50% { text-shadow: 0 0 20px rgba(220, 53, 69, 0.8); }
+      100% { text-shadow: 0 0 10px rgba(220, 53, 69, 0.5); }
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 5px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .floating-particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      animation: float 6s infinite linear;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .clocks-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+      }
+
+      .clock {
+        width: 80px;
+        height: 80px;
+        font-size: 1.5em;
+      }
+
+      .game-title {
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="floating-particles" id="particles"></div>
+
+<div class="game-container">
+  <h1 class="game-title">时间的低语</h1>
+  <div class="level-display" id="levelDisplay">第一关</div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="message" id="message">点击开始游戏</div>
+
+  <div class="clocks-container" id="clocksContainer">
+    <div class="clock" data-index="0" data-note="Do">
+      <div class="hands"></div>
+      <div class="note-label">Do</div>
+    </div>
+    <div class="clock" data-index="1" data-note="Re">
+      <div class="hands"></div>
+      <div class="note-label">Re</div>
+    </div>
+    <div class="clock" data-index="2" data-note="Mi">
+      <div class="hands"></div>
+      <div class="note-label">Mi</div>
+    </div>
+    <div class="clock" data-index="3" data-note="Fa">
+      <div class="hands"></div>
+      <div class="note-label">Fa</div>
+    </div>
+    <div class="clock" data-index="4" data-note="Sol">
+      <div class="hands"></div>
+      <div class="note-label">Sol</div>
+    </div>
+    <div class="clock" data-index="5" data-note="La">
+      <div class="hands"></div>
+      <div class="note-label">La</div>
+    </div>
+    <div class="clock" data-index="6" data-note="Si">
+      <div class="hands"></div>
+      <div class="note-label">Si</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="startBtn">开始游戏</button>
+    <button class="btn" id="resetBtn">重新开始</button>
+  </div>
+</div>
+
+<script>
+  class ClockGame {
+    constructor() {
+      this.currentLevel = 1;
+      this.sequence = [];
+      this.playerSequence = [];
+      this.isPlaying = false;
+      this.isShowingSequence = false;
+      this.sequenceIndex = 0;
+      this.playerIndex = 0;
+      
+      // 检查URL参数，记录游戏来源
+      const urlParams = new URLSearchParams(window.location.search);
+      this.source = urlParams.get('source');
+      if (this.source) {
+        console.log('小游戏2：游戏来源:', this.source);
+        // 记录来源到localStorage
+        localStorage.setItem('minigame2_source', this.source);
+      } else {
+        console.log('小游戏2：未检测到来源参数，使用默认值');
+        this.source = 'use_power';
+      }
+
+      this.frequencies = {
+        'Do': 261.63,
+        'Re': 293.66,
+        'Mi': 329.63,
+        'Fa': 349.23,
+        'Sol': 392.00,
+        'La': 440.00,
+        'Si': 493.88
+      };
+
+      this.levelConfigs = {
+        1: { length: 4, interval: 1000 },
+        2: { length: 6, interval: 700 },
+        3: { length: 8, interval: 500 }
+      };
+
+      this.init();
+    }
+
+    init() {
+      this.createParticles();
+      this.bindEvents();
+      this.updateDisplay();
+    }
+
+    createParticles() {
+      const particlesContainer = document.getElementById('particles');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+        particlesContainer.appendChild(particle);
+      }
+    }
+
+    bindEvents() {
+      document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+      document.getElementById('resetBtn').addEventListener('click', () => this.resetGame());
+
+      const clocks = document.querySelectorAll('.clock');
+      clocks.forEach(clock => {
+        clock.addEventListener('click', () => this.handleClockClick(clock));
+      });
+    }
+
+    startGame() {
+      if (this.isPlaying) return;
+
+      this.isPlaying = true;
+      this.generateSequence();
+      this.showMessage('观察序列...');
+      this.disableClocks();
+      this.showSequence();
+    }
+
+    generateSequence() {
+      const config = this.levelConfigs[this.currentLevel];
+      this.sequence = [];
+
+      for (let i = 0; i < config.length; i++) {
+        this.sequence.push(Math.floor(Math.random() * 7));
+      }
+
+      this.playerSequence = [];
+      this.playerIndex = 0;
+    }
+
+    async showSequence() {
+      this.isShowingSequence = true;
+
+      for (let i = 0; i < this.sequence.length; i++) {
+        const clockIndex = this.sequence[i];
+        const clock = document.querySelector(`[data-index="${clockIndex}"]`);
+
+        // 激活时钟
+        clock.classList.add('active');
+        this.playNote(clock.dataset.note);
+
+        // 等待间隔
+        await this.sleep(this.levelConfigs[this.currentLevel].interval);
+
+        // 停用时钟
+        clock.classList.remove('active');
+
+        // 短暂停顿
+        await this.sleep(200);
+      }
+
+      this.isShowingSequence = false;
+      this.showMessage('现在轮到你了！');
+      this.enableClocks();
+    }
+
+    handleClockClick(clock) {
+      if (this.isShowingSequence || !this.isPlaying) return;
+
+      const clickedIndex = parseInt(clock.dataset.index);
+      const expectedIndex = this.sequence[this.playerIndex];
+
+      if (clickedIndex === expectedIndex) {
+        // 正确点击
+        clock.classList.add('correct');
+        this.playNote(clock.dataset.note);
+        this.playerSequence.push(clickedIndex);
+        this.playerIndex++;
+
+        // 更新进度条
+        const progress = (this.playerIndex / this.sequence.length) * 100;
+        document.getElementById('progressFill').style.width = progress + '%';
+
+        setTimeout(() => {
+          clock.classList.remove('correct');
+        }, 500);
+
+        // 检查是否完成当前关卡
+        if (this.playerIndex >= this.sequence.length) {
+          this.completeLevel();
+        }
+      } else {
+        // 错误点击
+        clock.classList.add('wrong');
+        this.playErrorSound();
+
+        setTimeout(() => {
+          clock.classList.remove('wrong');
+        }, 500);
+
+        this.gameOver();
+      }
+    }
+
+    completeLevel() {
+      this.showMessage(`恭喜！完成第${this.currentLevel}关！`, 'success');
+
+      if (this.currentLevel < 3) {
+        this.currentLevel++;
+        this.updateDisplay(); // 更新关卡显示
+        this.isPlaying = false; // 重置游戏状态
+        setTimeout(() => {
+          this.startGame();
+        }, 2000);
+      } else {
+        this.gameWin();
+      }
+    }
+
+    gameOver() {
+      this.isPlaying = false;
+      this.showMessage('时间错乱了！回到第一关...', 'error');
+      this.currentLevel = 1;
+      this.updateDisplay(); // 更新关卡显示
+      this.disableClocks();
+
+      setTimeout(() => {
+        this.resetGame();
+      }, 2000);
+    }
+
+    gameWin() {
+      this.isPlaying = false;
+      this.showMessage('恭喜！你成功完成了所有挑战！', 'success');
+      this.disableClocks();
+      
+      // 显示记忆获得信息
+      setTimeout(() => {
+        this.showMessage('你获得了三人的记忆...', 'success');
+                        console.log('时间小游戏：游戏胜利，获得三人记忆');
+                
+                // 解锁三人记忆成就
+                if (window.achievementSystem) {
+                    setTimeout(() => {
+                        window.achievementSystem.unlockAchievement('trio_memory');
+                    }, 1000);
+                }
+        
+        setTimeout(() => {
+          this.showMessage('疯帽子的记忆：时间被皇后夺走了...', 'success');
+          
+          setTimeout(() => {
+            this.showMessage('三月兔的记忆：皇后的规则锁住了一切...', 'success');
+            
+            setTimeout(() => {
+              this.showMessage('睡鼠的记忆：审判...永远的审判...', 'success');
+              
+              setTimeout(() => {
+                // 设置游戏完成标记并返回第四章
+                console.log('时间小游戏：设置完成标记，准备返回第四章');
+                
+                // 设置正确的localStorage标记
+                localStorage.setItem('time_game_completed', 'true');
+                
+                console.log('时间小游戏：已设置localStorage标记');
+                console.log('localStorage.time_game_completed:', localStorage.getItem('time_game_completed'));
+        
+        // 显示返回提示
+                this.showMessage('正在返回茶话会...', 'success');
+        
+                // 延迟后返回第四章
+        setTimeout(() => {
+                  console.log('时间小游戏：即将跳转到第四章节.html');
+                  window.location.href = '第四章节.html';
+                }, 2000);
+              }, 2000);
+            }, 2000);
+          }, 2000);
+        }, 2000);
+      }, 1500);
+    }
+
+    resetGame() {
+      this.currentLevel = 1;
+      this.sequence = [];
+      this.playerSequence = [];
+      this.isPlaying = false;
+      this.isShowingSequence = false;
+      this.playerIndex = 0;
+
+      this.enableClocks();
+      this.showMessage('点击开始游戏');
+      this.updateDisplay();
+      document.getElementById('progressFill').style.width = '0%';
+
+      // 清除所有时钟状态
+      document.querySelectorAll('.clock').forEach(clock => {
+        clock.classList.remove('active', 'correct', 'wrong');
+      });
+    }
+
+    playNote(note) {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = this.frequencies[note];
+      oscillator.type = 'sine';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+
+    playErrorSound() {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+      oscillator.type = 'sawtooth';
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
+
+    showMessage(text, type = '') {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + type;
+    }
+
+    updateDisplay() {
+      const levelNames = ['', '第一关', '第二关', '第三关'];
+      document.getElementById('levelDisplay').textContent = levelNames[this.currentLevel];
+    }
+
+    enableClocks() {
+      document.querySelectorAll('.clock').forEach(clock => {
+        clock.style.pointerEvents = 'auto';
+      });
+    }
+
+    disableClocks() {
+      document.querySelectorAll('.clock').forEach(clock => {
+        clock.style.pointerEvents = 'none';
+      });
+    }
+
+    sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+  }
+
+  // 初始化游戏
+  document.addEventListener('DOMContentLoaded', () => {
+    new ClockGame();
+  });
+</script>
+</body>
+</html> 
