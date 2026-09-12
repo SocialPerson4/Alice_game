@@ -1109,9 +1109,10 @@
             // 从数据库获取玩家道具
             const dbItems = await getPlayerItemsFromDB(playerId);
 
-            // 检查关键道具是否拥有
-            const hasTwistingPower = await checkPlayerHasItem(playerId, '扭曲之力');
-            const hasResonanceStone = await checkPlayerHasItem(playerId, '共鸣之石');
+            // 兼容前序章节与数据库模板中使用的道具名称。
+            const hasUnfearingCore = dbItems['无畏之核'] === true;
+            const hasTwistingPower = dbItems['扭曲之力'] === true || dbItems['扭转之力'] === true;
+            const hasResonanceStone = dbItems['共鸣之石'] === true || dbItems['心之映射'] === true;
 
             console.log('数据库道具检查结果:', {
                 '扭曲之力': hasTwistingPower,
@@ -1611,7 +1612,7 @@
         '皇后的隐秘悲哀': { name: '皇后的隐秘悲哀', description: '一份关于皇后悲伤过往的记录。' }
     };
 
-    // 数据库道具（从前面章节获得，用于结局判定）
+    // 从前序章节读取的数据库道具状态。第五章当前仍由玩家在最终阶段选择力量路线。
     let dbPlayerData = {
         hasUnfearingCore: false,    // 无畏之核
         hasTwistingPower: false,    // 扭曲之力
