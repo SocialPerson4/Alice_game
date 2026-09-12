@@ -11,7 +11,9 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 // 中间件
 app.disable('x-powered-by');
-app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
+if (process.env.CORS_ORIGIN) {
+    app.use(cors({ origin: process.env.CORS_ORIGIN }));
+}
 app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
 
@@ -97,7 +99,7 @@ async function createAudioSettingsTable() {
 }
 
 // 初始化用户成就的辅助函数
-async function initializeUserAchievements(userId) {
+async function initializeUserAchievements(userId, executor = pool) {
     try {
         // 备用方案：使用 JavaScript 逐一插入
         const achievements = [
@@ -130,29 +132,32 @@ async function initializeUserAchievements(userId) {
         // 逐一插入成就
         for (const achievement of achievements) {
             try {
-                await pool.execute(`
+                await executor.execute(`
                     INSERT IGNORE INTO achievements (user_id, name, title, description, icon, rarity, points, is_get)
                     VALUES (?, ?, ?, ?, ?, ?, ?, FALSE)
                 `, [userId, achievement.name, achievement.title, achievement.description, achievement.icon, achievement.rarity, achievement.points]);
             } catch (insertError) {
                 console.error(`插入成就 ${achievement.name} 失败:`, insertError.message);
+                throw insertError;
             }
         }
 
         // 自动解锁注册相关成就
         try {
-            await pool.execute(`
+            await executor.execute(`
                 UPDATE achievements
                 SET is_get = TRUE, get_time = NOW()
                 WHERE user_id = ? AND name IN ('register_account', 'first_visit')
             `, [userId]);
         } catch (updateError) {
             console.error('自动解锁注册成就失败:', updateError.message);
+            throw updateError;
         }
 
         console.log(`用户 ${userId} 成就初始化成功`);
     } catch (error) {
         console.error(`用户 ${userId} 成就初始化失败:`, error);
+        throw error;
     }
 }
 
@@ -255,33 +260,36 @@ async function createItemsTable() {
 }
 
 // 初始化用户道具的辅助函数
-async function initializeUserItems(userId) {
+async function initializeUserItems(userId, executor = pool) {
     try {
         // 获取所有道具模板
-        const [itemTemplates] = await pool.execute(`
+        const [itemTemplates] = await executor.execute(`
             SELECT id, item_key FROM items
         `);
 
         // 为用户在背包中创建所有道具记录（初始状态为未获得）
         for (const item of itemTemplates) {
             try {
-                await pool.execute(`
+                await executor.execute(`
                     INSERT IGNORE INTO user_inventory (user_id, item_id, is_get)
                     VALUES (?, ?, FALSE)
                 `, [userId, item.id]);
             } catch (insertError) {
                 console.error(`初始化道具 ${item.item_key} 失败:`, insertError.message);
+                throw insertError;
             }
         }
 
         console.log(`用户 ${userId} 背包初始化成功`);
     } catch (error) {
         console.error(`用户 ${userId} 背包初始化失败:`, error);
+        throw error;
     }
 }
 
 // 用户注册
 app.post('/api/register', async (req, res) => {
+    let connection;
     try {
         const { username, password, nickname, avatar } = req.body;
 
@@ -300,13 +308,17 @@ app.post('/api/register', async (req, res) => {
             });
         }
 
-        // 检查用户名是否已存在
-        const [existingUsers] = await pool.execute(
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        // 预检查用于返回友好错误；并发冲突仍由唯一索引兜底。
+        const [existingUsers] = await connection.execute(
             'SELECT id FROM users WHERE username = ?',
             [username]
         );
 
         if (existingUsers.length > 0) {
+            await connection.rollback();
             return res.status(400).json({
                 success: false,
                 message: '用户名已存在'
@@ -317,7 +329,7 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 插入新用户
-        const [result] = await pool.execute(
+        const [result] = await connection.execute(
             'INSERT INTO users (username, password, nickname, avatar, created_at) VALUES (?, ?, ?, ?, NOW())',
             [username, hashedPassword, nickname, avatar || 'default.png']
         );
@@ -325,10 +337,12 @@ app.post('/api/register', async (req, res) => {
         const userId = result.insertId;
 
         // 初始化用户成就
-        await initializeUserAchievements(userId);
+        await initializeUserAchievements(userId, connection);
 
         // 初始化用户道具
-        await initializeUserItems(userId);
+        await initializeUserItems(userId, connection);
+
+        await connection.commit();
 
         res.json({
             success: true,
@@ -337,11 +351,20 @@ app.post('/api/register', async (req, res) => {
         });
 
     } catch (error) {
+        if (connection) await connection.rollback();
         console.error('注册错误:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({
+                success: false,
+                message: '用户名已存在'
+            });
+        }
         res.status(500).json({
             success: false,
             message: '服务器错误'
         });
+    } finally {
+        if (connection) connection.release();
     }
 });
 
@@ -567,7 +590,7 @@ app.get('/api/achievements', authenticateToken, async (req, res) => {
 // 解锁成就
 app.post('/api/achievements/unlock', authenticateToken, async (req, res) => {
     try {
-        const { achievementId, achievementName, achievementDescription } = req.body;
+        const { achievementId, achievementName } = req.body;
 
         // 支持新旧两种格式：新格式使用achievementId，旧格式使用achievementName
         const searchValue = achievementId || achievementName;
@@ -585,76 +608,36 @@ app.post('/api/achievements/unlock', authenticateToken, async (req, res) => {
             [req.user.userId, searchValue]
         );
 
-        let achievement;
-        let newlyUnlocked = false;
-
         if (existingAchievements.length === 0) {
-            // 如果成就不存在，创建新成就记录
-            if (!achievementName || !achievementDescription) {
-                return res.status(400).json({
-                    success: false,
-                    message: '创建新成就需要提供名称和描述'
-                });
-            }
-
-            // 根据成就ID设置稀有度和分数
-            let rarity = 'common';
-            let points = 10;
-            let icon = '🏆';
-
-            if (searchValue === 'heart_awakening') {
-                rarity = 'rare';
-                points = 30;
-                icon = '💖';
-            } else if (searchValue === 'wonderland_understanding') {
-                rarity = 'epic';
-                points = 50;
-                icon = '🧠';
-            }
-
-            // 创建新成就
-            const [insertResult] = await pool.execute(`
-                INSERT INTO achievements (user_id, name, title, description, icon, rarity, points, is_get, get_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())
-            `, [req.user.userId, searchValue, achievementName, achievementDescription, icon, rarity, points]);
-
-            achievement = {
-                id: insertResult.insertId,
-                name: searchValue,
-                title: achievementName,
-                description: achievementDescription,
-                is_get: true
-            };
-            newlyUnlocked = true;
-
-        } else {
-            // 成就已存在，检查是否已解锁
-            achievement = existingAchievements[0];
-
-            if (achievement.is_get) {
-                return res.json({
-                    success: true,
-                    message: '成就已解锁',
-                    newlyUnlocked: false,
-                    achievement: {
-                        name: achievement.name,
-                        title: achievement.title
-                    }
-                });
-            }
-
-            // 解锁现有成就
-            await pool.execute(
-                'UPDATE achievements SET is_get = TRUE, get_time = NOW() WHERE user_id = ? AND name = ?',
-                [req.user.userId, searchValue]
-            );
-            newlyUnlocked = true;
+            return res.status(404).json({
+                success: false,
+                message: '成就不存在'
+            });
         }
+
+        // 只允许解锁服务器初始化的成就定义，客户端不能创建任意成就。
+        const achievement = existingAchievements[0];
+        if (achievement.is_get) {
+            return res.json({
+                success: true,
+                message: '成就已解锁',
+                newlyUnlocked: false,
+                achievement: {
+                    name: achievement.name,
+                    title: achievement.title
+                }
+            });
+        }
+
+        await pool.execute(
+            'UPDATE achievements SET is_get = TRUE, get_time = NOW() WHERE user_id = ? AND name = ?',
+            [req.user.userId, searchValue]
+        );
 
         res.json({
             success: true,
             message: `成就 "${achievement.title}" 解锁成功！`,
-            newlyUnlocked: newlyUnlocked,
+            newlyUnlocked: true,
             achievement: {
                 name: achievement.name,
                 title: achievement.title,

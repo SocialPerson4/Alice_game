@@ -21,12 +21,15 @@ for (const relativePath of requiredPaths) {
 
 const serverSource = fs.readFileSync(path.join(root, 'src/server.js'), 'utf8');
 const forbiddenPatterns = [
-    /password:\s*['"]123456['"]/
+    /password:\s*['"]123456['"]/,
+    /generativelanguage\.googleapis\.com/,
+    /YOUR_GEMINI_API_KEY/,
+    /\/player\/(?:items|progress)/
 ];
 
 for (const pattern of forbiddenPatterns) {
     if (pattern.test(serverSource)) {
-        throw new Error(`检测到不应提交的固定凭据：${pattern}`);
+        throw new Error(`检测到不应提交的凭据或失效接口：${pattern}`);
     }
 }
 
@@ -38,6 +41,17 @@ function walk(directory) {
 }
 
 const publicDirectory = path.join(root, 'public');
+const publicCodeFiles = walk(publicDirectory).filter((file) => /\.(?:html|js)$/i.test(file));
+for (const codeFile of publicCodeFiles) {
+    const source = fs.readFileSync(codeFile, 'utf8');
+    for (const pattern of forbiddenPatterns) {
+        if (pattern.test(source)) {
+            throw new Error(
+                `检测到不应提交的凭据或失效接口：${path.relative(root, codeFile)} -> ${pattern}`
+            );
+        }
+    }
+}
 const pageFiles = walk(publicDirectory).filter((file) => /\.(html|css)$/i.test(file));
 const missingAssets = [];
 const referencePatterns = [

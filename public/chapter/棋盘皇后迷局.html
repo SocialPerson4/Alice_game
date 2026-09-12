@@ -249,30 +249,11 @@
         let ruleChangeInterval = null; // 规则变异定时器
         let soldierMoveInterval = null; // 士兵移动定时器
 
-        // --- Gemini API 调用函数 ---
-        async function callGemini(prompt) {
-            // 请在此处替换为您的实际 Gemini API 密钥
-            const apiKey = "YOUR_GEMINI_API_KEY"; // API 密钥将由环境注入
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) throw new Error(`API call failed: ${response.status}`);
-                const result = await response.json();
-                if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    return result.candidates[0].content.parts[0].text;
-                }
-                console.error("Unexpected API response:", result);
-                return "仙境的信号似乎被什么东西干扰了...";
-            } catch (error) {
-                console.error("Error calling Gemini API:", error);
-                return "哦不，通往想象世界的电波中断了！";
-            }
+        // --- 本地旁白：公开版不在浏览器中保存或调用模型 API 密钥 ---
+        async function generateLocalCommentary(prompt) {
+            if (prompt.includes('规则')) return '规则又变了。先观察棋盘，再决定下一步。';
+            if (prompt.includes('皇后')) return '皇后的目光扫过棋盘，催促你尽快作出选择。';
+            return '仙境没有替你作答，线索仍藏在棋盘的变化里。';
         }
 
         // --- 场景切换逻辑 (简化为只有一个场景) ---
@@ -401,7 +382,7 @@
 
         async function announceMutation(description) {
             const prompt = `You are the Cheshire Cat. Briefly and mysteriously describe this strange event on a chessboard: "${description}". Keep it to one sentence. Your response MUST be in Chinese.`;
-            const commentaryText = await callGemini(prompt);
+            const commentaryText = await generateLocalCommentary(prompt);
             mutationCommentary.textContent = commentaryText;
             mutationCommentary.classList.add('show');
             setTimeout(() => mutationCommentary.classList.remove('show'), 3500);
@@ -470,7 +451,7 @@
             setTimeout(() => gameOverModal.querySelector('div').classList.remove('scale-95', 'opacity-0'), 50);
             geminiScolding.textContent = '红皇后正在想怎么处置你...';
             const prompt = "You are the Red Queen. Write a short, angry, and absurd scolding for Alice who was caught by your card soldiers. Keep it to one or two sentences. Your response MUST be in Chinese.";
-            geminiScolding.textContent = await callGemini(prompt);
+            geminiScolding.textContent = await generateLocalCommentary(prompt);
         }
 
         function stopGame() {

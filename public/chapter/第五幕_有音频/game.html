@@ -1023,28 +1023,13 @@
 
 <script>
     // ===============================
-    // 数据库接口代码 - 用于接入后端数据库
+    // 与当前 Express 路由保持一致；未登录时使用本地离线数据。
     // ===============================
 
     /**
      * 数据库API接口配置
      */
-    const DB_CONFIG = {
-        // 后端API基础URL - 需要根据实际后端地址修改
-        BASE_URL: 'http://localhost:3000/api',
-
-        // API端点
-        ENDPOINTS: {
-            // 获取玩家道具数据
-            GET_PLAYER_ITEMS: '/player/items',
-            // 更新玩家道具
-            UPDATE_PLAYER_ITEMS: '/player/items',
-            // 获取玩家进度
-            GET_PLAYER_PROGRESS: '/player/progress',
-            // 保存游戏进度
-            SAVE_GAME_PROGRESS: '/player/progress'
-        }
-    };
+    const DB_CONFIG = { ITEMS_URL: '/api/items' };
 
     /**
      * 从数据库获取玩家道具数据
@@ -1053,10 +1038,13 @@
      */
     async function getPlayerItemsFromDB(playerId) {
         try {
-            const response = await fetch(`${DB_CONFIG.BASE_URL}${DB_CONFIG.ENDPOINTS.GET_PLAYER_ITEMS}?playerId=${playerId}`, {
+            const token = localStorage.getItem('token');
+            if (!token) return getDefaultPlayerItems();
+            const response = await fetch(DB_CONFIG.ITEMS_URL, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -1065,7 +1053,9 @@
             }
 
             const data = await response.json();
-            return data.items || {};
+            return Object.fromEntries(
+                (data.items || []).map(item => [item.name, Boolean(item.is_get)])
+            );
         } catch (error) {
             console.error('获取玩家道具数据失败:', error);
             // 如果数据库连接失败，返回默认数据
@@ -1085,30 +1075,17 @@
     }
 
     /**
-     * 保存游戏进度到数据库
+     * 当前公开后端没有游戏进度表；仅保存到本机浏览器。
      * @param {string} playerId - 玩家ID
      * @param {Object} progressData - 进度数据
      * @returns {Promise<boolean>} 保存是否成功
      */
     async function saveGameProgressToDB(playerId, progressData) {
-        try {
-            const response = await fetch(`${DB_CONFIG.BASE_URL}${DB_CONFIG.ENDPOINTS.SAVE_GAME_PROGRESS}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    playerId: playerId,
-                    progress: progressData,
-                    timestamp: new Date().toISOString()
-                })
-            });
-
-            return response.ok;
-        } catch (error) {
-            console.error('保存游戏进度失败:', error);
-            return false;
-        }
+        localStorage.setItem(`alice_progress_${playerId}`, JSON.stringify({
+            progress: progressData,
+            timestamp: new Date().toISOString()
+        }));
+        return true;
     }
 
     /**
